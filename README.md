@@ -1,4 +1,4 @@
-# module_tfn
+# TransferFunctionModule
 A standalone 2D transfer function widget implementation for OSPRay
 
 ## Rendering
