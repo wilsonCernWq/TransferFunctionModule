@@ -198,12 +198,9 @@ void TransferFunctionWidget::drawUi()
 			     ImVec2(canvas_x + margin + width,
 				    canvas_y - margin + 2.5 * color_len), 0xFF474646);    
     // draw circles
-    for (int i = 0; i < tfn_c->size(); ++i)
+    for (int i = tfn_c->size()-1; i >= 0; --i)
     {
       const ImVec2 pos(canvas_x + width * (*tfn_c)[i].p + margin, canvas_y);
-      ImGui::SetCursorScreenPos(ImVec2(pos.x - color_len, pos.y));
-      ImGui::InvisibleButton(("square-"+std::to_string(i)).c_str(),
-			     ImVec2(2.f * color_len, 2.f * color_len));
       ImGui::SetCursorScreenPos(ImVec2(canvas_x, canvas_y));
       // white background
       draw_list->AddTriangleFilled(ImVec2(pos.x - 0.5f * color_len, pos.y),
@@ -212,6 +209,29 @@ void TransferFunctionWidget::drawUi()
 				   0xFFD8D8D8);
       draw_list->AddCircleFilled(ImVec2(pos.x, pos.y + 0.5f * color_len), color_len,
 				 0xFFD8D8D8);
+      // draw picker
+      ImGui::SetCursorScreenPos(ImVec2(pos.x - color_len, pos.y + 1.5f * color_len));
+      ImVec4 picked_color = ImColor((*tfn_c)[i].r, (*tfn_c)[i].g, (*tfn_c)[i].b, 1.f);
+      if (ImGui::ColorEdit4(("ColorPicker"+std::to_string(i)).c_str(),
+      			    (float*)&picked_color,
+			    ImGuiColorEditFlags_NoAlpha |
+			    ImGuiColorEditFlags_NoInputs |
+			    ImGuiColorEditFlags_NoLabel |
+			    ImGuiColorEditFlags_AlphaPreview |
+			    ImGuiColorEditFlags_NoOptions))
+      {
+      	(*tfn_c)[i].r = picked_color.x;
+      	(*tfn_c)[i].g = picked_color.y;
+      	(*tfn_c)[i].b = picked_color.z;
+      	tfn_changed = true;
+      }
+    }
+    for (int i = 0; i < tfn_c->size(); ++i)
+    {
+      const ImVec2 pos(canvas_x + width * (*tfn_c)[i].p + margin, canvas_y);
+      ImGui::SetCursorScreenPos(ImVec2(pos.x - color_len, pos.y));
+      ImGui::InvisibleButton(("square-"+std::to_string(i)).c_str(),
+			     ImVec2(2.f * color_len, 2.f * color_len));
       // dark highlight
       draw_list->AddCircleFilled(ImVec2(pos.x, pos.y + 0.5f * color_len), 0.5f*color_len,
 				 ImGui::IsItemHovered() ? 0xFF051C33 : 0xFFBCBCBC);
@@ -230,22 +250,6 @@ void TransferFunctionWidget::drawUi()
 	  (*tfn_c)[i].p += delta.x/width;
 	  (*tfn_c)[i].p = clamp((*tfn_c)[i].p, (*tfn_c)[i-1].p, (*tfn_c)[i+1].p);
 	}	
-      	tfn_changed = true;
-      }
-      // draw picker
-      ImGui::SetCursorScreenPos(ImVec2(pos.x - color_len, pos.y + 1.5f * color_len));
-      ImVec4 picked_color = ImColor((*tfn_c)[i].r, (*tfn_c)[i].g, (*tfn_c)[i].b, 1.f);
-      if (ImGui::ColorEdit4(("ColorPicker"+std::to_string(i)).c_str(),
-      			    (float*)&picked_color,
-			    ImGuiColorEditFlags_NoAlpha |
-			    ImGuiColorEditFlags_NoInputs |
-			    ImGuiColorEditFlags_NoLabel |
-			    ImGuiColorEditFlags_AlphaPreview |
-			    ImGuiColorEditFlags_NoOptions))
-      {
-      	(*tfn_c)[i].r = picked_color.x;
-      	(*tfn_c)[i].g = picked_color.y;
-      	(*tfn_c)[i].b = picked_color.z;
       	tfn_changed = true;
       }
     }
