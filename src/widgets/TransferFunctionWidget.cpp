@@ -391,7 +391,7 @@ void TransferFunctionWidget::render()
     std::vector<uint8_t> palette(tfn_w * tfn_h * 4, 0);
     std::vector<float> colors(3 * tfn_w, 1.f);
     std::vector<float> alpha (2 * tfn_w, 1.f);
-    const float step = 1.0f / (float)tfn_w;
+    const float step = 1.0f / (float)(tfn_w-1);
     for (int i = 0; i < tfn_w; ++i)
     {
       const float p = clamp(i * step, 0.0f, 1.0f);
