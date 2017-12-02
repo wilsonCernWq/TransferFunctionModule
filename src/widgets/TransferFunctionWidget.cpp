@@ -60,13 +60,15 @@ void TransferFunctionWidget::LoadDefaultMap()
 };
 
 void 
-TransferFunctionWidget::SetTFNSelection(int selection) 
+TransferFunctionWidget::SetTFNSelection(int selection)
 {
-  tfn_selection = selection;
-  tfn_c = &(tfn_c_list[selection]);
-  tfn_o = &(tfn_o_list[selection]);
-  tfn_edit = tfn_editable[selection];
-  tfn_changed = true;
+  if (tfn_selection != selection) {
+    tfn_selection = selection;
+    tfn_c = &(tfn_c_list[selection]);
+    tfn_o = &(tfn_o_list[selection]);
+    tfn_edit = tfn_editable[selection];
+    tfn_changed = true;
+  }
 }
 
 TransferFunctionWidget::~TransferFunctionWidget()
@@ -88,7 +90,10 @@ TransferFunctionWidget::TransferFunctionWidget
   tfn_sample_set(sample_value_setter)
 {
   LoadDefaultMap();
-  SetTFNSelection(tfn_selection);
+  //SetTFNSelection(tfn_selection);
+  tfn_c = &(tfn_c_list[tfn_selection]);
+  tfn_o = &(tfn_o_list[tfn_selection]);
+  tfn_edit = tfn_editable[tfn_selection];
 }
 
 TransferFunctionWidget::TransferFunctionWidget(const TransferFunctionWidget &core) :
@@ -102,7 +107,10 @@ TransferFunctionWidget::TransferFunctionWidget(const TransferFunctionWidget &cor
   tfn_sample_num_get(core.tfn_sample_num_get),
   tfn_sample_set(core.tfn_sample_set)
 {
-  SetTFNSelection(tfn_selection);
+  //SetTFNSelection(tfn_selection);
+  tfn_c = &(tfn_c_list[tfn_selection]);
+  tfn_o = &(tfn_o_list[tfn_selection]);
+  tfn_edit = tfn_editable[tfn_selection];
 }
 
 TransferFunctionWidget& 
@@ -224,6 +232,7 @@ void TransferFunctionWidget::drawUi()
       	(*tfn_c)[i].g = picked_color.y;
       	(*tfn_c)[i].b = picked_color.z;
       	tfn_changed = true;
+	//printf("[GUI] Color Editor\n");
       }
     }
     for (int i = 0; i < tfn_c->size(); ++i)
@@ -241,6 +250,7 @@ void TransferFunctionWidget::drawUi()
 	if (i > 0 && i < tfn_c->size()-1) {
 	  tfn_c->erase(tfn_c->begin() + i);
 	  tfn_changed = true;
+	  //printf("[GUI] Delete Color Point\n");
 	}	
       }
       if (ImGui::IsItemActive())
@@ -251,6 +261,7 @@ void TransferFunctionWidget::drawUi()
 	  (*tfn_c)[i].p = clamp((*tfn_c)[i].p, (*tfn_c)[i-1].p, (*tfn_c)[i+1].p);
 	}	
       	tfn_changed = true;
+	//printf("[GUI] Drag Color Point\n");
       }
     }
   }    
@@ -278,7 +289,8 @@ void TransferFunctionWidget::drawUi()
       if (ImGui::IsMouseDoubleClicked(1) && ImGui::IsItemHovered()) {
 	if (i > 0 && i < tfn_o->size()-1) {
 	  tfn_o->erase(tfn_o->begin() + i);
-	  tfn_changed = true;	  
+	  tfn_changed = true;
+	  //printf("[GUI] Delete Opacity Point\n");
 	}
       }
       if (ImGui::IsItemActive())
@@ -291,6 +303,7 @@ void TransferFunctionWidget::drawUi()
 	  (*tfn_o)[i].p = clamp((*tfn_o)[i].p, (*tfn_o)[i-1].p, (*tfn_o)[i+1].p);
 	}
 	tfn_changed = true;
+	//printf("[GUI] Drag Opacity Point\n");
       }
     }
   }
@@ -312,7 +325,7 @@ void TransferFunctionWidget::drawUi()
     ColorPoint pt; pt.p = p, pt.r = r; pt.g = g; pt.b = b;
     tfn_c->insert(tfn_c->begin() + ir, pt);      
     tfn_changed = true;
-    // printf("[GUI] add opacity point at %f with value = (%f, %f, %f)\n", p, r, g, b);
+    //printf("[GUI] add opacity point at %f with value = (%f, %f, %f)\n", p, r, g, b);
   }	      
   // draw background interaction
   ImGui::SetCursorScreenPos(ImVec2(canvas_x + margin, canvas_y - height - margin));
@@ -328,7 +341,7 @@ void TransferFunctionWidget::drawUi()
     OpacityPoint pt; pt.p = x, pt.a = y;
     tfn_o->insert(tfn_o->begin()+idx, pt);
     tfn_changed = true;
-    // printf("[GUI] add opacity point at %f with value = %f\n", x, y);
+    //printf("[GUI] add opacity point at %f with value = %f\n", x, y);
   }
   // update cursors
   canvas_y       += 4.f * color_len + margin;
@@ -408,7 +421,6 @@ void TransferFunctionWidget::render()
       palette[i * 4 + 2] = static_cast<uint8_t>(b * 255.f);
       palette[i * 4 + 3] = 255;
     }
-    tfn_changed = false;
     
     // Render palette again
     glBindTexture(GL_TEXTURE_2D, tfn_palette);
@@ -428,6 +440,8 @@ void TransferFunctionWidget::render()
     // NOTE(jda) - HACK! colors array isn't updating, so we have to forcefully
     //             say "make sure you update yourself"...???
     tfn_sample_set(colors, alpha);
+    //printf("[GUI] Set Color\n");
+    tfn_changed = false;
   }
 }
 
