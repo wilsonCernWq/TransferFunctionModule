@@ -64,6 +64,7 @@ TransferFunctionWidget::SetTFNSelection(int selection)
 {
   if (tfn_selection != selection) {
     tfn_selection = selection;
+    // Remember to update other constructors as well
     tfn_c = &(tfn_c_list[selection]);
     tfn_o = &(tfn_o_list[selection]);
     tfn_edit = tfn_editable[selection];
@@ -90,7 +91,6 @@ TransferFunctionWidget::TransferFunctionWidget
   tfn_sample_set(sample_value_setter)
 {
   LoadDefaultMap();
-  //SetTFNSelection(tfn_selection);
   tfn_c = &(tfn_c_list[tfn_selection]);
   tfn_o = &(tfn_o_list[tfn_selection]);
   tfn_edit = tfn_editable[tfn_selection];
@@ -107,7 +107,6 @@ TransferFunctionWidget::TransferFunctionWidget(const TransferFunctionWidget &cor
   tfn_sample_num_get(core.tfn_sample_num_get),
   tfn_sample_set(core.tfn_sample_set)
 {
-  //SetTFNSelection(tfn_selection);
   tfn_c = &(tfn_c_list[tfn_selection]);
   tfn_o = &(tfn_o_list[tfn_selection]);
   tfn_edit = tfn_editable[tfn_selection];
@@ -132,16 +131,12 @@ void TransferFunctionWidget::drawUi()
 {
   if (!ImGui::Begin("Transfer Function Widget")) { ImGui::End(); return; }
   ImGui::Text("1D Transfer Function");
-  ImGui::Text("Left click and drag to move control points\n"
-	      "Left double click on empty area to add control points\n"
-	      "Right double click on control points to remove it\n"
-	      "Left click on color preview can open the color editor\n\n");
   // radio paremeters
   ImGui::Separator();
   std::vector<const char*> names(tfn_names.size(), nullptr);
   std::transform(tfn_names.begin(), tfn_names.end(), names.begin(),
 		 [](const std::string &t) { return t.c_str(); });
-  ImGui::ListBox("color maps", &tfn_selection, names.data(), names.size());
+  ImGui::ListBox("Color maps", &tfn_selection, names.data(), names.size());
   ImGui::InputText("", tfn_text_buffer.data(), tfn_text_buffer.size() - 1);
   ImGui::SameLine();
   if (ImGui::Button("load new file")) {
@@ -163,7 +158,7 @@ void TransferFunctionWidget::drawUi()
   //------------ Transfer Function -------------------
   // style
   // only God and me know what do they do ...
-  SetTFNSelection(tfn_selection);
+  SetTFNSelection(tfn_selection);  
   ImDrawList *draw_list = ImGui::GetWindowDrawList();
   float canvas_x = ImGui::GetCursorScreenPos().x;
   float canvas_y = ImGui::GetCursorScreenPos().y;
@@ -178,6 +173,8 @@ void TransferFunctionWidget::drawUi()
   const float height = 60.f;
   const float color_len   = 9.f;
   const float opacity_len = 7.f;
+  bool display_helper_0 = false; // How to operate/delete a control point
+  bool display_helper_1 = false; // How to add control points
   // draw preview texture
   ImGui::SetCursorScreenPos(ImVec2(canvas_x + margin, canvas_y));
   ImGui::Image(reinterpret_cast<void*>(tfn_palette), ImVec2(width, height));
@@ -218,42 +215,64 @@ void TransferFunctionWidget::drawUi()
       draw_list->AddCircleFilled(ImVec2(pos.x, pos.y + 0.5f * color_len), color_len,
 				 0xFFD8D8D8);
       // draw picker
-      ImGui::SetCursorScreenPos(ImVec2(pos.x - color_len, pos.y + 1.5f * color_len));
       ImVec4 picked_color = ImColor((*tfn_c)[i].r, (*tfn_c)[i].g, (*tfn_c)[i].b, 1.f);
-      if (ImGui::ColorEdit4(("ColorPicker"+std::to_string(i)).c_str(),
+      ImGui::SetCursorScreenPos(ImVec2(pos.x - color_len, pos.y + 1.5f * color_len));
+      if (ImGui::ColorEdit4(("##ColorPicker"+std::to_string(i)).c_str(),
       			    (float*)&picked_color,
 			    ImGuiColorEditFlags_NoAlpha |
 			    ImGuiColorEditFlags_NoInputs |
 			    ImGuiColorEditFlags_NoLabel |
 			    ImGuiColorEditFlags_AlphaPreview |
-			    ImGuiColorEditFlags_NoOptions))
+			    ImGuiColorEditFlags_NoOptions |
+			    ImGuiColorEditFlags_NoTooltip))
       {
       	(*tfn_c)[i].r = picked_color.x;
       	(*tfn_c)[i].g = picked_color.y;
       	(*tfn_c)[i].b = picked_color.z;
       	tfn_changed = true;
-	//printf("[GUI] Color Editor\n");
+      }
+      if (ImGui::IsItemHovered())
+      {
+	// convert float color to char
+	int cr = static_cast<int>(picked_color.x * 255);
+	int cg = static_cast<int>(picked_color.y * 255);
+	int cb = static_cast<int>(picked_color.z * 255);
+	// setup tooltip
+	ImGui::BeginTooltip();
+	ImVec2 sz(ImGui::GetFontSize() * 4 + ImGui::GetStyle().FramePadding.y * 2,
+		  ImGui::GetFontSize() * 4 + ImGui::GetStyle().FramePadding.y * 2);
+	ImGui::ColorButton("##PreviewColor", picked_color,
+			   ImGuiColorEditFlags_NoAlpha |
+			   ImGuiColorEditFlags_AlphaPreview,
+			   sz);
+	ImGui::SameLine();
+	ImGui::Text("Left click to edit\n"
+		    "HEX: #%02X%02X%02X\n"
+		    "RGB: [%3d,%3d,%3d]\n(%.2f, %.2f, %.2f)",
+		    cr, cg, cb, cr, cg, cb, picked_color.x, picked_color.y, picked_color.z);
+	ImGui::EndTooltip();
       }
     }
     for (int i = 0; i < tfn_c->size(); ++i)
     {
       const ImVec2 pos(canvas_x + width * (*tfn_c)[i].p + margin, canvas_y);
-      ImGui::SetCursorScreenPos(ImVec2(pos.x - color_len, pos.y));
-      ImGui::InvisibleButton(("square-"+std::to_string(i)).c_str(),
+      // draw button
+      ImGui::SetCursorScreenPos(ImVec2(pos.x - color_len, pos.y - 0.5 * color_len));
+      ImGui::InvisibleButton(("##ColorControl-"+std::to_string(i)).c_str(),
 			     ImVec2(2.f * color_len, 2.f * color_len));
       // dark highlight
+      ImGui::SetCursorScreenPos(ImVec2(pos.x - color_len, pos.y));
       draw_list->AddCircleFilled(ImVec2(pos.x, pos.y + 0.5f * color_len), 0.5f*color_len,
 				 ImGui::IsItemHovered() ? 0xFF051C33 : 0xFFBCBCBC);
-      // setup interactions
       // delete color point
       if (ImGui::IsMouseDoubleClicked(1) && ImGui::IsItemHovered()) {
 	if (i > 0 && i < tfn_c->size()-1) {
 	  tfn_c->erase(tfn_c->begin() + i);
 	  tfn_changed = true;
-	  //printf("[GUI] Delete Color Point\n");
-	}	
+	}
       }
-      if (ImGui::IsItemActive())
+      // drag color control point
+      else if (ImGui::IsItemActive())
       {
 	ImVec2 delta = ImGui::GetIO().MouseDelta;	  
 	if (i > 0 && i < tfn_c->size()-1) {
@@ -261,8 +280,8 @@ void TransferFunctionWidget::drawUi()
 	  (*tfn_c)[i].p = clamp((*tfn_c)[i].p, (*tfn_c)[i-1].p, (*tfn_c)[i+1].p);
 	}	
       	tfn_changed = true;
-	//printf("[GUI] Drag Color Point\n");
       }
+      else if (ImGui::IsItemHovered()) { display_helper_0 = true; }
     }
   }    
   // draw opacity control points
@@ -274,7 +293,7 @@ void TransferFunctionWidget::drawUi()
       const ImVec2 pos(canvas_x + width  * (*tfn_o)[i].p + margin,
 		       canvas_y - height * (*tfn_o)[i].a - margin);		
       ImGui::SetCursorScreenPos(ImVec2(pos.x - opacity_len, pos.y - opacity_len));
-      ImGui::InvisibleButton(("button-"+std::to_string(i)).c_str(),
+      ImGui::InvisibleButton(("##OpacityControl-"+std::to_string(i)).c_str(),
 			     ImVec2(2.f * opacity_len, 2.f * opacity_len));
       ImGui::SetCursorScreenPos(ImVec2(canvas_x, canvas_y));
       // dark bounding box
@@ -290,10 +309,9 @@ void TransferFunctionWidget::drawUi()
 	if (i > 0 && i < tfn_o->size()-1) {
 	  tfn_o->erase(tfn_o->begin() + i);
 	  tfn_changed = true;
-	  //printf("[GUI] Delete Opacity Point\n");
 	}
       }
-      if (ImGui::IsItemActive())
+      else if (ImGui::IsItemActive())
       {
 	ImVec2 delta = ImGui::GetIO().MouseDelta;	  
 	(*tfn_o)[i].a -= delta.y/height;
@@ -303,13 +321,13 @@ void TransferFunctionWidget::drawUi()
 	  (*tfn_o)[i].p = clamp((*tfn_o)[i].p, (*tfn_o)[i-1].p, (*tfn_o)[i+1].p);
 	}
 	tfn_changed = true;
-	//printf("[GUI] Drag Opacity Point\n");
       }
+      else if (ImGui::IsItemHovered()) { display_helper_0 = true; }
     }
   }
   // draw background interaction
   ImGui::SetCursorScreenPos(ImVec2(canvas_x + margin, canvas_y - margin));
-  ImGui::InvisibleButton("tfn_palette", ImVec2(width, 2.5 * color_len));
+  ImGui::InvisibleButton("##tfn_palette_color", ImVec2(width, 2.5 * color_len));
   // add color point
   if (tfn_edit && ImGui::IsMouseDoubleClicked(0) && ImGui::IsItemHovered())
   {
@@ -325,11 +343,11 @@ void TransferFunctionWidget::drawUi()
     ColorPoint pt; pt.p = p, pt.r = r; pt.g = g; pt.b = b;
     tfn_c->insert(tfn_c->begin() + ir, pt);      
     tfn_changed = true;
-    //printf("[GUI] add opacity point at %f with value = (%f, %f, %f)\n", p, r, g, b);
-  }	      
+  }
+  if (ImGui::IsItemHovered()) { display_helper_1 = true; }
   // draw background interaction
   ImGui::SetCursorScreenPos(ImVec2(canvas_x + margin, canvas_y - height - margin));
-  ImGui::InvisibleButton("tfn_palette", ImVec2(width,height));
+  ImGui::InvisibleButton("##tfn_palette_opacity", ImVec2(width,height));
   // add opacity point
   if (ImGui::IsMouseDoubleClicked(0) && ImGui::IsItemHovered())
   {
@@ -341,12 +359,20 @@ void TransferFunctionWidget::drawUi()
     OpacityPoint pt; pt.p = x, pt.a = y;
     tfn_o->insert(tfn_o->begin()+idx, pt);
     tfn_changed = true;
-    //printf("[GUI] add opacity point at %f with value = %f\n", x, y);
   }
+  if (ImGui::IsItemHovered()) { display_helper_1 = true; }
   // update cursors
   canvas_y       += 4.f * color_len + margin;
   canvas_avail_y -= 4.f * color_len + margin;
   //------------ Transfer Function -------------------
+  ImGui::SetCursorScreenPos(ImVec2(canvas_x, canvas_y));
+  if (display_helper_0) {
+    ImGui::Text("Double right click botton to delete point\n"
+		"Left click and drag to move point");
+  }
+  if (display_helper_1 && !display_helper_0) {
+    ImGui::Text("Double left click empty area to add point\n");
+  }
   ImGui::End();
 }
 
@@ -436,11 +462,7 @@ void TransferFunctionWidget::render()
     }
     // Restore previous binded texture
     if (prevBinding) { glBindTexture(GL_TEXTURE_2D, prevBinding); }
-
-    // NOTE(jda) - HACK! colors array isn't updating, so we have to forcefully
-    //             say "make sure you update yourself"...???
     tfn_sample_set(colors, alpha);
-    //printf("[GUI] Set Color\n");
     tfn_changed = false;
   }
 }
@@ -453,15 +475,11 @@ void TransferFunctionWidget::load(const std::string &fileName)
   const int c_size = tfn_new.rgbValues.size();
   const int o_size = tfn_new.opacityValues.size();  
   // load data
-  //tfn_c_list.emplace_back(0);
-  //tfn_o_list.emplace_back(o_size);
   tfn_c_list.emplace_back(c_size);
   tfn_o_list.emplace_back(o_size);
   tfn_editable.push_back(false); // TODO we dont want to edit loaded TFN
   tfn_names.push_back(tfn_new.name);
   SetTFNSelection(tfn_names.size()-1); // set the loaded function as current
-  //----- metadata ----
-  //----- color ---
   if (c_size < 2) {
     throw std::runtime_error("transfer function contains too few color points");
   }
