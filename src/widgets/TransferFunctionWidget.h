@@ -32,7 +32,7 @@ namespace tfn {
       /* Draw the transfer function editor widget, returns true if the
        * transfer function changed
        */
-      void drawUi();
+      bool drawUI();
       /* Render the transfer function to a 1D texture that can
        * be applied to volume data
        */
