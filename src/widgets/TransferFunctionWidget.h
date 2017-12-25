@@ -97,7 +97,7 @@ namespace tfn {
       };
 
     private:
-      // function handler
+	  // function handler
       std::function<size_t()> tfn_sample_num_get;
       std::function<void(const std::vector<float>,
 			 const std::vector<float>)> tfn_sample_set;
