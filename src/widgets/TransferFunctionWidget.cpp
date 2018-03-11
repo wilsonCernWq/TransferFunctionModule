@@ -490,4 +490,49 @@ void TransferFunctionWidget::load(const std::string &fileName) {
 }
 
 void tfn::tfn_widget::TransferFunctionWidget::save(const std::string &fileName)
-const { ; }
+const
+{
+  // // For opacity we can store the associated data value and only have 1 line,
+  // // so just save it out directly
+  // tfn::TransferFunction output(transferFunctions[tfcnSelection].name,
+  //     std::vector<vec3f>(), rgbaLines[3].line, 0, 1, 1);
+
+  // // Pull the RGB line values to compute the transfer function and save it out
+  // // here we may need to do some interpolation, if the RGB lines have differing numbers
+  // // of control points
+  // // Find which x values we need to sample to get all the control points for the tfcn.
+  // std::vector<float> controlPoints;
+  // for (size_t i = 0; i < 3; ++i) {
+  //   for (const auto &x : rgbaLines[i].line)
+  //     controlPoints.push_back(x.x);
+  // }
+
+  // // Filter out same or within epsilon control points to get unique list
+  // std::sort(controlPoints.begin(), controlPoints.end());
+  // auto uniqueEnd = std::unique(controlPoints.begin(), controlPoints.end(),
+  //     [](const float &a, const float &b) { return std::abs(a - b) < 0.0001; });
+  // controlPoints.erase(uniqueEnd, controlPoints.end());
+
+  // // Step along the lines and sample them
+  // std::array<std::vector<vec2f>::const_iterator, 3> lit = {
+  //   rgbaLines[0].line.begin(), rgbaLines[1].line.begin(),
+  //   rgbaLines[2].line.begin()
+  // };
+
+  // for (const auto &x : controlPoints) {
+  //   std::array<float, 3> sampleColor;
+  //   for (size_t j = 0; j < 3; ++j) {
+  //     if (x > (lit[j] + 1)->x)
+  //       ++lit[j];
+
+  //     assert(lit[j] != rgbaLines[j].line.end());
+  //     const float t = (x - lit[j]->x) / ((lit[j] + 1)->x - lit[j]->x);
+  //     // It's hard to click down at exactly 0, so offset a little bit
+  //     sampleColor[j] = clamp(lerp(lit[j]->y - 0.001, (lit[j] + 1)->y - 0.001, t));
+  //   }
+  //   output.rgbValues.push_back(vec3f(sampleColor[0], sampleColor[1], sampleColor[2]));
+  // }
+
+  // output.save(fileName);
+;
+}

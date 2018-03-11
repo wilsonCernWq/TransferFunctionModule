@@ -111,6 +111,7 @@ namespace tfn {
       };
 
     private:
+<<<<<<< HEAD
       
       // Core Handler
       std::function<void(const std::vector<float>&,
