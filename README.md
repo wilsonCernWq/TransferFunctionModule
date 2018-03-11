@@ -1,5 +1,5 @@
 # TransferFunctionModule
-A standalone 2D transfer function widget implementation for OSPRay
+A standalone 1D transfer function widget implementation using ImGui
 
 ## Rendering
 

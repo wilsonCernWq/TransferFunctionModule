@@ -72,17 +72,20 @@ TransferFunctionWidget::~TransferFunctionWidget() {
 }
 
 TransferFunctionWidget::TransferFunctionWidget
-  (const std::function<size_t()> &sample_num_getter,
-   const std::function<void(const std::vector<float> &,
-                            const std::vector<float> &)> &
+  (const std::function<void(const std::vector<float> &,
+                            const std::vector<float> &,
+			    const std::array<float, 2>&)> &
    sample_value_setter)
   :
   tfn_selection(JET),
   tfn_changed(true),
+  tfn_resized(true),  
   tfn_palette(0),
   tfn_text_buffer(512, '\0'),
-  tfn_sample_num_get(sample_num_getter),
-  tfn_sample_set(sample_value_setter) {
+  tfn_sample_set(sample_value_setter),
+  valueRange{0.f,0.f},
+  defaultRange{0.f,0.f}
+{
   LoadDefaultMap();
   tfn_c = &(tfn_c_list[tfn_selection]);
   tfn_o = &(tfn_o_list[tfn_selection]);
@@ -95,10 +98,13 @@ TransferFunctionWidget::TransferFunctionWidget(const TransferFunctionWidget &cor
   tfn_readers(core.tfn_readers),
   tfn_selection(core.tfn_selection),
   tfn_changed(true),
+  tfn_resized(true),
   tfn_palette(0),
   tfn_text_buffer(512, '\0'),
-  tfn_sample_num_get(core.tfn_sample_num_get),
-  tfn_sample_set(core.tfn_sample_set) {
+  tfn_sample_set(core.tfn_sample_set),
+  valueRange(core.valueRange),
+  defaultRange(core.defaultRange)
+{
   tfn_c = &(tfn_c_list[tfn_selection]);
   tfn_o = &(tfn_o_list[tfn_selection]);
   tfn_edit = tfn_editable[tfn_selection];
@@ -112,9 +118,13 @@ TransferFunctionWidget::operator=(const tfn::tfn_widget::TransferFunctionWidget 
   tfn_readers = core.tfn_readers;
   tfn_selection = core.tfn_selection;
   tfn_changed = true;
+  tfn_resized = true;
   tfn_palette = 0;
-  tfn_sample_num_get = core.tfn_sample_num_get;
   tfn_sample_set = core.tfn_sample_set;
+  valueRange[0] = core.valueRange[0];
+  valueRange[1] = core.valueRange[1];
+  defaultRange[0] = core.defaultRange[0];
+  defaultRange[1] = core.defaultRange[1];
   return *this;
 }
 
@@ -148,6 +158,9 @@ bool TransferFunctionWidget::drawUI() {
   }
   // TODO: save function is not implemented
   // if (ImGui::Button("save")) { save(tfn_text_buffer.data()); }
+  if (ImGui::InputFloat2("value range", valueRange.data())) {
+    tfn_changed = true;
+  }
   //------------ Transfer Function -------------------
   // style
   // only God and me know what do they do ...
@@ -377,15 +390,11 @@ void RenderTFNTexture(GLuint &tex, int width, int height) {
 }
 
 void TransferFunctionWidget::render() {
-  int num_samples = (int) tfn_sample_num_get();
-  bool paltte_size_changed = (tfn_w != num_samples);
-  tfn_w = num_samples;
-  tfn_h = 1; // TODO: right now we onlu support 1D TFN
 
   // Upload to GL if the transfer function has changed
   if (!tfn_palette) {
     RenderTFNTexture(tfn_palette, tfn_w, tfn_h);
-    paltte_size_changed = false;
+    tfn_resized = false;
   }
 
   // Update texture color
@@ -431,7 +440,7 @@ void TransferFunctionWidget::render() {
 
     // Render palette again
     glBindTexture(GL_TEXTURE_2D, tfn_palette);
-    if (paltte_size_changed) {
+    if (tfn_resized) {
       // LOGICALLY we need to resize texture of texture is resized
       glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, tfn_w, tfn_h,
                    0, GL_RGBA, GL_UNSIGNED_BYTE,
@@ -442,7 +451,7 @@ void TransferFunctionWidget::render() {
     }
     // Restore previous binded texture
     if (prevBinding) { glBindTexture(GL_TEXTURE_2D, prevBinding); }
-    tfn_sample_set(colors, alpha);
+    tfn_sample_set(colors, alpha, valueRange);
     tfn_changed = false;
   }
 }
