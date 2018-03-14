@@ -30,11 +30,6 @@ namespace tfn {
       TransferFunctionWidget& operator=(const TransferFunctionWidget &);
       /* Control Widget Values
        */
-      void setNumberOfSamples(const size_t& sz) 
-      {
-	tfn_w = sz;
-	tfn_resized = true;
-      }
       void setDefaultRange(const float& a, const float& b) 
       {
 	defaultRange[0] = a;
@@ -50,7 +45,7 @@ namespace tfn {
       /* Render the transfer function to a 1D texture that can
        * be applied to volume data
        */
-      void render();
+      void render(size_t tfn_w, size_t tfn_h = 1);
       // Load the transfer function in the file passed and set it active
       void load(const std::string &fileName);
       // Save the current transfer function out to the file
@@ -139,14 +134,11 @@ namespace tfn {
       //     Track if the function changed and must be re-uploaded.
       //     We start by marking it changed to upload the initial palette
       bool   tfn_changed{true};
-      // tfn_resized:
-      //     Track if this tfn is resized
-      bool   tfn_resized{true};
 
       // Meta Data
       // * Interpolated trasnfer function size
-      int tfn_w = 256;
-      int tfn_h = 1; // TODO: right now we onlu support 1D TFN
+      // int tfn_w = 256;
+      // int tfn_h = 1; // TODO: right now we onlu support 1D TFN
 
       // * The selected transfer function being shown
       int  tfn_selection;      

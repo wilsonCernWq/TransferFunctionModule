@@ -79,7 +79,6 @@ TransferFunctionWidget::TransferFunctionWidget
   :
   tfn_selection(JET),
   tfn_changed(true),
-  tfn_resized(true),  
   tfn_palette(0),
   tfn_text_buffer(512, '\0'),
   tfn_sample_set(sample_value_setter),
@@ -98,7 +97,6 @@ TransferFunctionWidget::TransferFunctionWidget(const TransferFunctionWidget &cor
   tfn_readers(core.tfn_readers),
   tfn_selection(core.tfn_selection),
   tfn_changed(true),
-  tfn_resized(true),
   tfn_palette(0),
   tfn_text_buffer(512, '\0'),
   tfn_sample_set(core.tfn_sample_set),
@@ -118,7 +116,6 @@ TransferFunctionWidget::operator=(const tfn::tfn_widget::TransferFunctionWidget 
   tfn_readers = core.tfn_readers;
   tfn_selection = core.tfn_selection;
   tfn_changed = true;
-  tfn_resized = true;
   tfn_palette = 0;
   tfn_sample_set = core.tfn_sample_set;
   valueRange[0] = core.valueRange[0];
@@ -389,12 +386,11 @@ void RenderTFNTexture(GLuint &tex, int width, int height) {
   }
 }
 
-void TransferFunctionWidget::render() {
+void TransferFunctionWidget::render(size_t tfn_w, size_t tfn_h) {
 
   // Upload to GL if the transfer function has changed
   if (!tfn_palette) {
     RenderTFNTexture(tfn_palette, tfn_w, tfn_h);
-    tfn_resized = false;
   }
 
   // Update texture color
@@ -440,15 +436,10 @@ void TransferFunctionWidget::render() {
 
     // Render palette again
     glBindTexture(GL_TEXTURE_2D, tfn_palette);
-    if (tfn_resized) {
-      // LOGICALLY we need to resize texture of texture is resized
-      glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, tfn_w, tfn_h,
-                   0, GL_RGBA, GL_UNSIGNED_BYTE,
-                   static_cast<const void *>(palette.data()));
-    } else {
-      glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, tfn_w, tfn_h, GL_RGBA,
-                      GL_UNSIGNED_BYTE, static_cast<const void *>(palette.data()));
-    }
+    // LOGICALLY we need to resize texture of texture is resized
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, tfn_w, tfn_h,
+		 0, GL_RGBA, GL_UNSIGNED_BYTE,
+		 static_cast<const void *>(palette.data()));  
     // Restore previous binded texture
     if (prevBinding) { glBindTexture(GL_TEXTURE_2D, prevBinding); }
     tfn_sample_set(colors, alpha, valueRange);
