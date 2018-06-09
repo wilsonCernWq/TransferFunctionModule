@@ -210,7 +210,8 @@ bool TransferFunctionWidget::drawUI() {
     // draw circle background
     draw_list->AddRectFilled(ImVec2(canvas_x + margin, canvas_y - margin),
                              ImVec2(canvas_x + margin + width,
-                                    canvas_y - margin + 2.5 * color_len), 0xFF474646);
+                                    canvas_y - margin + 2.5 * color_len), 
+                             0xFF474646);
     // draw circles
     for (int i = tfn_c->size() - 1; i >= 0; --i) {
       const ImVec2 pos(canvas_x + width * (*tfn_c)[i].p + margin, canvas_y);
@@ -220,19 +221,23 @@ bool TransferFunctionWidget::drawUI() {
                                    ImVec2(pos.x + 0.5f * color_len, pos.y),
                                    ImVec2(pos.x, pos.y - color_len),
                                    0xFFD8D8D8);
-      draw_list->AddCircleFilled(ImVec2(pos.x, pos.y + 0.5f * color_len), color_len,
+      draw_list->AddCircleFilled(ImVec2(pos.x, pos.y + 0.5f * color_len),
+                                 color_len,
                                  0xFFD8D8D8);
       // draw picker
-      ImVec4 picked_color = ImColor((*tfn_c)[i].r, (*tfn_c)[i].g, (*tfn_c)[i].b, 1.f);
-      ImGui::SetCursorScreenPos(ImVec2(pos.x - color_len, pos.y + 1.5f * color_len));
+      ImVec4 picked_color = ImColor((*tfn_c)[i].r,
+                                    (*tfn_c)[i].g, 
+                                    (*tfn_c)[i].b, 1.f);
+      ImGui::SetCursorScreenPos(ImVec2(pos.x - color_len, 
+                                       pos.y + 1.5f * color_len));
       if (ImGui::ColorEdit4(("##ColorPicker" + std::to_string(i)).c_str(),
                             (float *) &picked_color,
                             ImGuiColorEditFlags_NoAlpha |
-                              ImGuiColorEditFlags_NoInputs |
-                              ImGuiColorEditFlags_NoLabel |
-                              ImGuiColorEditFlags_AlphaPreview |
-                              ImGuiColorEditFlags_NoOptions |
-                              ImGuiColorEditFlags_NoTooltip)) {
+                            ImGuiColorEditFlags_NoInputs |
+                            ImGuiColorEditFlags_NoLabel |
+                            ImGuiColorEditFlags_AlphaPreview |
+                            ImGuiColorEditFlags_NoOptions |
+                            ImGuiColorEditFlags_NoTooltip)) {
         (*tfn_c)[i].r = picked_color.x;
         (*tfn_c)[i].g = picked_color.y;
         (*tfn_c)[i].b = picked_color.z;
