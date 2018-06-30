@@ -125,8 +125,8 @@ TransferFunctionWidget::operator=(const tfn::tfn_widget::TransferFunctionWidget 
   return *this;
 }
 
-bool TransferFunctionWidget::drawUI() {
-  if (!ImGui::Begin("Transfer Function Widget")) {
+bool TransferFunctionWidget::drawUI(bool* p_open) {
+  if (!ImGui::Begin("Transfer Function Widget", p_open)) {
     ImGui::End();
     return false;
   }

@@ -22,9 +22,10 @@ namespace tfn {
     class TFN_MODULE_INTERFACE TransferFunctionWidget
     {
     public:
-      TransferFunctionWidget(const std::function<void(const std::vector<float>&,
-						      const std::vector<float>&,
-						      const std::array<float, 2>&)>&);	
+      TransferFunctionWidget(const std::function<void
+                             (const std::vector<float>&,
+                              const std::vector<float>&,
+                              const std::array<float, 2>&)>&);	
       ~TransferFunctionWidget();
       TransferFunctionWidget(const TransferFunctionWidget &);
       TransferFunctionWidget& operator=(const TransferFunctionWidget &);
@@ -41,7 +42,7 @@ namespace tfn {
       /* Draw the transfer function editor widget, returns true if the
        * transfer function changed
        */
-      bool drawUI();
+      bool drawUI(bool* p_open = NULL);
       /* Render the transfer function to a 1D texture that can
        * be applied to volume data
        */
