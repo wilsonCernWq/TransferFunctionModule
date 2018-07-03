@@ -52,6 +52,8 @@ namespace tfn {
       // Save the current transfer function out to the file
       void save(const std::string &fileName) const;
     private:
+      void DrawTFNEditor(bool&, bool&, const float margin, const float height);
+    private:
       // The indices of the transfer function color presets available
       enum ColorMap {
 	JET,
