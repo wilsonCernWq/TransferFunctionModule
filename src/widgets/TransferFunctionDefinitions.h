@@ -398,7 +398,7 @@ void TransferFunctionWidget::LoadDefaultMap() {
     tfn_o_list.back()[2] = OpacityPoint(0.50f, 0.50f);
     tfn_o_list.back()[3] = OpacityPoint(0.75f, 0.75f);
     tfn_o_list.back()[4] = OpacityPoint(1.00f, 1.00f);
-    tfn_editable.push_back(ct.second.size() < 10);
+    tfn_editable.push_back(ct.second.size() < 40);
     tfn_names.push_back(ct.first);
   }
 };

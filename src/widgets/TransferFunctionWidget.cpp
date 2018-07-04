@@ -2,11 +2,12 @@
 // Copyright SCI Institute, University of Utah, 2018
 // ======================================================================== //
 
+#include <stdexcept>
 #include <cmath>
 #include <algorithm>
 #include <iostream>
 #include <fstream>
-#include <stdexcept>
+#include <sstream>
 
 #include <imgui.h>
 #include <imconfig.h>
@@ -116,8 +117,7 @@ TransferFunctionWidget::operator=
 }
 
 void TransferFunctionWidget::DrawTFNEditor
-(bool& display_helper_0, bool& display_helper_1, 
- const float margin, const float height)
+(const float margin, const float height)
 {
   // style
   // only God and me know what do they do ...
@@ -133,8 +133,6 @@ void TransferFunctionWidget::DrawTFNEditor
   const float width = canvas_avail_x - 2.f * margin;
   const float color_len   = 9.f;
   const float opacity_len = 7.f;
-  display_helper_0 = false; // How to operate/delete a control point
-  display_helper_1 = false; // How to add control points
   // draw preview texture
   ImGui::SetCursorScreenPos(ImVec2(canvas_x + margin, canvas_y));
   ImGui::Image(reinterpret_cast<void *>(tfn_palette), ImVec2(width, height));
@@ -246,7 +244,7 @@ void TransferFunctionWidget::DrawTFNEditor
                                 (*tfn_c)[i + 1].p);
         }
         tfn_changed = true;
-      } else if (ImGui::IsItemHovered()) { display_helper_0 = true; }
+      } //else if (ImGui::IsItemHovered()) { display_helper_0 = true; }
     }
   }
   // draw opacity control points
@@ -285,7 +283,7 @@ void TransferFunctionWidget::DrawTFNEditor
                                 (*tfn_o)[i + 1].p);
         }
         tfn_changed = true;
-      } else if (ImGui::IsItemHovered()) { display_helper_0 = true; }
+      } //else if (ImGui::IsItemHovered()) { display_helper_0 = true; }
     }
   }
   // draw background interaction
@@ -310,7 +308,7 @@ void TransferFunctionWidget::DrawTFNEditor
     tfn_c->insert(tfn_c->begin() + ir, pt);
     tfn_changed = true;
   }
-  if (ImGui::IsItemHovered()) { display_helper_1 = true; }
+  //if (ImGui::IsItemHovered()) { display_helper_1 = true; }
   // draw background interaction
   ImGui::SetCursorScreenPos(ImVec2(canvas_x + margin, 
                                    canvas_y - height - margin));
@@ -329,7 +327,7 @@ void TransferFunctionWidget::DrawTFNEditor
     tfn_o->insert(tfn_o->begin() + idx, pt);
     tfn_changed = true;
   }
-  if (ImGui::IsItemHovered()) { display_helper_1 = true; }
+  //if (ImGui::IsItemHovered()) { display_helper_1 = true; }
   // update cursors
   canvas_y += 4.f * color_len + margin;
   canvas_avail_y -= 4.f * color_len + margin;
@@ -337,33 +335,37 @@ void TransferFunctionWidget::DrawTFNEditor
 }
 
 bool TransferFunctionWidget::drawUI(bool* p_open) {
+  // ImGui::ShowTestWindow();
   //------------ Early Termination --------------------
   if (!ImGui::Begin("Transfer Function Widget", p_open)) {
     ImGui::End(); return false;
   }
   //------------ Parameters ---------------------------
   const float margin = 20.f;
-  //------------ Basic Controls -----------------------
+  //------------ Display Help Messages ----------------
   // title
+  ImGui::Spacing();
   ImGui::SetCursorPosX(margin);
   ImGui::Text("1D Transfer Function");
-  // built-in color lists
+  ImGui::SameLine();
   {
-    static int curr_tfn = tfn_selection;
-    std::vector<const char *> names(tfn_names.size(), nullptr);
-    std::transform(tfn_names.begin(), tfn_names.end(), names.begin(),
-                   [](const std::string &t) { return t.c_str(); });
-    ImGui::SetCursorPosX(margin);
-    if (ImGui::ListBox("color tables", &curr_tfn,
-                       names.data(), names.size())) {
-      SetTFNSelection(curr_tfn);
+    ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 2.f);
+    ImGui::Button("help");
+    if (ImGui::IsItemHovered()) {
+      ImGui::SetTooltip("Double right click a control point to delete it\n"
+                        "Single left click and drag a control point to move it\n"
+                        "Double left click on an empty area to add a control "
+                        "point\n");
     }
+    ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 2.f);
   }
+  ImGui::Spacing();
+  //------------ Basic Controls -----------------------
   // load a transfer function from file
   ImGui::SetCursorPosX(margin);
   ImGui::InputText("", tfn_text_buffer.data(), tfn_text_buffer.size() - 1);
   ImGui::SameLine();
-  if (ImGui::Button("load")) {
+  if (ImGui::Button("load a new tfn")) {
     try {
       std::string s = tfn_text_buffer.data();
       s.erase(s.find_last_not_of(" \n\r\t") + 1);
@@ -376,32 +378,38 @@ bool TransferFunctionWidget::drawUI(bool* p_open) {
   }
   // TODO: save function is not implemented
   // if (ImGui::Button("save")) { save(tfn_text_buffer.data()); }
+  // built-in color lists
+  {
+    static int curr_tfn = tfn_selection;
+    static std::string curr_names = "";
+    curr_names = "";
+    for (auto& n : tfn_names) {
+      curr_names += n + '\0';
+    }
+    ImGui::SetCursorPosX(margin);
+    if (ImGui::Combo(" color tables", &curr_tfn, curr_names.c_str())) {
+      SetTFNSelection(curr_tfn);
+    }
+  }
   // display transfer function value range
   ImGui::SetCursorPosX(margin);
   if (defaultRange[1] > defaultRange[0]) {
-    if (ImGui::DragFloat2("value range", valueRange.data(),
+    if (ImGui::DragFloat2(" value range", valueRange.data(),
   			  (defaultRange[1] - defaultRange[0]) / 1000.f,
   			  defaultRange[0], defaultRange[1])) {
       tfn_changed = true;
     }
   } else {
-    if (ImGui::DragFloat2("value range", valueRange.data())) {
+    if (ImGui::DragFloat2(" value range", valueRange.data())) {
       tfn_changed = true;
     }
   }
   //------------ Transfer Function Editor -------------
-  bool display_helper_0 = false; // How to operate/delete a control point
-  bool display_helper_1 = false; // How to add control points
-  DrawTFNEditor(display_helper_0, display_helper_1, 
-                11.f, 80.f);
-  //------------ Display Help Messages ----------------
-  if (display_helper_0) {
-    ImGui::SetTooltip("Double right click botton to delete point\n"
-                      "Left click and drag to move point");
-  }
-  if (display_helper_1 && !display_helper_0) {
-    ImGui::SetTooltip("Double left click empty area to add point\n");
-  }
+  //bool display_helper_0 = false; // How to operate/delete a control point
+  //bool display_helper_1 = false; // How to add control points
+  float avail_h  = ImGui::GetContentRegionAvail().y;
+  ImGui::Spacing();
+  DrawTFNEditor(11.f, avail_h - 60.f);
   //------------ End Transfer Function ----------------
   ImGui::End();
   return true;
