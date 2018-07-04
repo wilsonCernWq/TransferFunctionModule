@@ -1,3 +1,7 @@
+// ======================================================================== //
+// Copyright SCI Institute, University of Utah, 2018
+// ======================================================================== //
+
 #include <cmath>
 #include <algorithm>
 #include <iostream>
@@ -9,6 +13,7 @@
 
 #include "common/math.h"
 #include "TransferFunctionWidget.h"
+#include "TransferFunctionDefinitions.h"
 
 using namespace tfn;
 using namespace tfn_widget;
@@ -38,22 +43,6 @@ float lerp(const float &l, const float &r,
   const float dr = 1.f - dl;
   return l * dr + r * dl;
 }
-
-void TransferFunctionWidget::LoadDefaultMap() {
-  tfn_c_list.emplace_back(4);
-  tfn_c_list.back()[0] = ColorPoint(0.0f, 0.f, 0.f, 1.f);
-  tfn_c_list.back()[1] = ColorPoint(0.3f, 0.f, 1.f, 1.f);
-  tfn_c_list.back()[2] = ColorPoint(0.6f, 1.f, 1.f, 0.f);
-  tfn_c_list.back()[3] = ColorPoint(1.0f, 1.f, 0.f, 0.f);
-  tfn_o_list.emplace_back(5);
-  tfn_o_list.back()[0] = OpacityPoint(0.00f, 0.00f);
-  tfn_o_list.back()[1] = OpacityPoint(0.25f, 0.25f);
-  tfn_o_list.back()[2] = OpacityPoint(0.50f, 0.50f);
-  tfn_o_list.back()[3] = OpacityPoint(0.75f, 0.75f);
-  tfn_o_list.back()[4] = OpacityPoint(1.00f, 1.00f);
-  tfn_editable.push_back(true);
-  tfn_names.push_back("Jet");
-};
 
 void
 TransferFunctionWidget::SetTFNSelection(int selection) {
@@ -130,7 +119,6 @@ void TransferFunctionWidget::DrawTFNEditor
 (bool& display_helper_0, bool& display_helper_1, 
  const float margin, const float height)
 {
-  SetTFNSelection(tfn_selection);
   // style
   // only God and me know what do they do ...
   ImDrawList *draw_list = ImGui::GetWindowDrawList();
@@ -360,11 +348,17 @@ bool TransferFunctionWidget::drawUI(bool* p_open) {
   ImGui::SetCursorPosX(margin);
   ImGui::Text("1D Transfer Function");
   // built-in color lists
-  ImGui::SetCursorPosX(margin);
-  std::vector<const char *> names(tfn_names.size(), nullptr);
-  std::transform(tfn_names.begin(), tfn_names.end(), names.begin(),
-                 [](const std::string &t) { return t.c_str(); });
-  ImGui::ListBox("Color maps", &tfn_selection, names.data(), names.size());
+  {
+    static int curr_tfn = tfn_selection;
+    std::vector<const char *> names(tfn_names.size(), nullptr);
+    std::transform(tfn_names.begin(), tfn_names.end(), names.begin(),
+                   [](const std::string &t) { return t.c_str(); });
+    ImGui::SetCursorPosX(margin);
+    if (ImGui::ListBox("Color maps", &curr_tfn,
+                       names.data(), names.size())) {
+      SetTFNSelection(curr_tfn);
+    }
+  }
   // load a transfer function from file
   ImGui::SetCursorPosX(margin);
   ImGui::InputText("", tfn_text_buffer.data(), tfn_text_buffer.size() - 1);
