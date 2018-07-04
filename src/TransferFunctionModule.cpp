@@ -25,7 +25,21 @@ using namespace tfn;
 const static uint32_t MAGIC_NUMBER = 0x4f535446;
 const static uint64_t CURRENT_VERSION = 1;
 
-TransferFunction::TransferFunction(const std::string &fileName) {
+TransferFunction::TransferFunction(const std::string &fileName) 
+{
+  load(fileName);
+}
+TransferFunction::TransferFunction(const std::string &name,
+    const std::vector<tfn::vec3f> &rgbValues,
+    const std::vector<tfn::vec2f> &opacityValues, const double dataValueMin,
+    const double dataValueMax, const float opacityScaling)
+  : name(name), rgbValues(rgbValues), 
+    opacityValues(opacityValues),
+    dataValueMin(dataValueMin),
+    dataValueMax(dataValueMax),
+    opacityScaling(opacityScaling)
+{}
+void TransferFunction::load(const std::string &fileName) {
   std::ifstream fin(fileName.c_str(), std::ios::binary);
   if (!fin.is_open()) {
     throw std::runtime_error("File " + fileName + " not found");
@@ -46,7 +60,6 @@ TransferFunction::TransferFunction(const std::string &fileName) {
   if (version != CURRENT_VERSION) {
     throw std::runtime_error("Got invalid version number from " + fileName);
   }
-
   uint64_t nameLen = 0;
   if (!fin.read(reinterpret_cast<char*>(&nameLen), sizeof(uint64_t))) {
     throw std::runtime_error("Failed to read nameLength header from " + fileName);
@@ -72,22 +85,15 @@ TransferFunction::TransferFunction(const std::string &fileName) {
   if (!fin.read(reinterpret_cast<char*>(&opacityScaling), sizeof(float))) {
     throw std::runtime_error("Failed to read opacityScaling header from " + fileName);
   }
-  rgbValues.resize(numColors, vec3f{0.f,0.f,0.f});
+  rgbValues.resize(numColors, tfn::vec3f{0.f,0.f,0.f});
   if (!fin.read(reinterpret_cast<char*>(rgbValues.data()), numColors * 3 * sizeof(float))) {
     throw std::runtime_error("Failed to read color values from " + fileName);
   }
-  opacityValues.resize(numOpacities, vec2f{0.f,0.f});
+  opacityValues.resize(numOpacities, tfn::vec2f{0.f,0.f});
   if (!fin.read(reinterpret_cast<char*>(opacityValues.data()), numOpacities * 2 * sizeof(float))) {
     throw std::runtime_error("Failed to read opacity values from " + fileName);
   }
 }
-TransferFunction::TransferFunction(const std::string &name,
-    const std::vector<tfn::vec3f> &rgbValues,
-    const std::vector<tfn::vec2f> &opacityValues, const double dataValueMin,
-    const double dataValueMax, const float opacityScaling)
-  : name(name), rgbValues(rgbValues), opacityValues(opacityValues), dataValueMin(dataValueMin),
-  dataValueMax(dataValueMax), opacityScaling(opacityScaling)
-{}
 void TransferFunction::save(const std::string &fileName) const {
   std::ofstream fout(fileName.c_str(), std::ios::binary);
   if (!fout.is_open()) {

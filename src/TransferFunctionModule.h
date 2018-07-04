@@ -32,6 +32,9 @@
 
 /* The transfer function file format used by the OSPRay sample apps is a
  * little endian binary format with the following layout:
+ *
+ * VERSION 1:
+ *
  * uint32: magic number identifying the file
  * uint64: version number
  * uint64: length of the name of the transfer function (not including \0)
@@ -42,8 +45,9 @@
  * float64: data value max
  * float32: opacity scaling value, opacity values should be scaled
  *          by this factor
- * [ospcommon::vec3f...]: RGB values
- * [ospcommon::vec2f...]: data value, opacity value pairs
+ * [vec3f...]: RGB values
+ * [vec2f...]: data value, opacity value pairs
+ *
  */
 
 namespace tfn {
@@ -63,6 +67,8 @@ namespace tfn {
 		     const double dataValueMin,
 		     const double dataValueMax,
 		     const float opacityScaling);
+    // Load the transfer function data from a file
+    void load(const std::string &fileName);
     // Save the transfer function data to the file
     void save(const std::string &fileName) const;
   };
