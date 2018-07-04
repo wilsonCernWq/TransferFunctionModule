@@ -354,7 +354,7 @@ bool TransferFunctionWidget::drawUI(bool* p_open) {
     std::transform(tfn_names.begin(), tfn_names.end(), names.begin(),
                    [](const std::string &t) { return t.c_str(); });
     ImGui::SetCursorPosX(margin);
-    if (ImGui::ListBox("Color maps", &curr_tfn,
+    if (ImGui::ListBox("color tables", &curr_tfn,
                        names.data(), names.size())) {
       SetTFNSelection(curr_tfn);
     }
@@ -370,7 +370,7 @@ bool TransferFunctionWidget::drawUI(bool* p_open) {
       s.erase(0, s.find_first_not_of(" \n\r\t"));
       load(s.c_str());
     } catch (const std::runtime_error &error) {
-      std::cerr << "\033[1;33m" << "Error:" << error.what() << "\033[0m"
+      std::cerr << "\033[1;33m" << "Error: " << error.what() << "\033[0m"
                 << std::endl;
     }
   }
@@ -407,7 +407,8 @@ bool TransferFunctionWidget::drawUI(bool* p_open) {
   return true;
 }
 
-void RenderTFNTexture(GLuint &tex, int width, int height) {
+void RenderTFNTexture(GLuint &tex, int width, int height) 
+{
   GLint prevBinding = 0;
   glGetIntegerv(GL_TEXTURE_BINDING_2D, &prevBinding);
   glGenTextures(1, &tex);
@@ -423,7 +424,8 @@ void RenderTFNTexture(GLuint &tex, int width, int height) {
   }
 }
 
-void TransferFunctionWidget::render(size_t tfn_w, size_t tfn_h) {
+void TransferFunctionWidget::render(size_t tfn_w, size_t tfn_h) 
+{
 
   // Upload to GL if the transfer function has changed
   if (!tfn_palette) {
@@ -484,7 +486,8 @@ void TransferFunctionWidget::render(size_t tfn_w, size_t tfn_h) {
   }
 }
 
-void TransferFunctionWidget::load(const std::string &fileName) {
+void TransferFunctionWidget::load(const std::string &fileName) 
+{
   tfn::TransferFunction loaded(fileName);
   tfn_readers.emplace_back(fileName);
   const auto tfn_new = tfn_readers.back();
@@ -519,8 +522,7 @@ void TransferFunctionWidget::load(const std::string &fileName) {
   tfn_changed = true;
 }
 
-void tfn::tfn_widget::TransferFunctionWidget::save(const std::string &fileName)
-const
+void tfn::tfn_widget::TransferFunctionWidget::save(const std::string &fileName) const
 {
   // // For opacity we can store the associated data value and only have 1 line,
   // // so just save it out directly
