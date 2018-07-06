@@ -12,7 +12,6 @@
 #include <imgui.h>
 #include <imconfig.h>
 
-#include "common/math.h"
 #include "TransferFunctionWidget.h"
 #include "TransferFunctionDefinitions.h"
 
@@ -66,7 +65,7 @@ TransferFunctionWidget::TransferFunctionWidget
  <void(const std::vector<float> &, const std::vector<float> &,
        const std::array<float, 2>&)> &sample_value_setter)
   :
-  tfn_selection(JET),
+  tfn_selection(0),
   tfn_changed(true),
   tfn_palette(0),
   tfn_text_buffer(512, '\0'),
@@ -322,7 +321,7 @@ void TransferFunctionWidget::DrawTFNEditor
                           (float) height,
                           0.f, 1.f);
     const int idx = find_idx(*tfn_o, x);
-    OpacityPoint pt;
+    OpacityPoint_Linear pt;
     pt.p = x, pt.a = y;
     tfn_o->insert(tfn_o->begin() + idx, pt);
     tfn_changed = true;
@@ -337,6 +336,7 @@ void TransferFunctionWidget::DrawTFNEditor
 bool TransferFunctionWidget::drawUI(bool* p_open) {
   // ImGui::ShowTestWindow();
   //------------ Early Termination --------------------
+  ImGui::SetNextWindowSizeConstraints(ImVec2(400,250),ImVec2(FLT_MAX,FLT_MAX));
   if (!ImGui::Begin("Transfer Function Widget", p_open)) {
     ImGui::End(); return false;
   }
@@ -353,7 +353,8 @@ bool TransferFunctionWidget::drawUI(bool* p_open) {
     ImGui::Button("help");
     if (ImGui::IsItemHovered()) {
       ImGui::SetTooltip("Double right click a control point to delete it\n"
-                        "Single left click and drag a control point to move it\n"
+                        "Single left click and drag a control point to "
+                        "move it\n"
                         "Double left click on an empty area to add a control "
                         "point\n");
     }

@@ -21,6 +21,8 @@
 
 using namespace tfn;
 
+// ======================================================================== //
+
 // The magic number is 'OSTF' in ASCII
 const static uint32_t MAGIC_NUMBER = 0x4f535446;
 const static uint64_t CURRENT_VERSION = 1;
@@ -138,3 +140,49 @@ void TransferFunction::save(const std::string &fileName) const {
   }
 }
 
+// ======================================================================== //
+
+ColorPoint::ColorPoint(const float cp, const float cr, 
+                       const float cg, const float cb)
+  : p(cp), r(cr), g(cg), b(cb){}
+ColorPoint::ColorPoint(const ColorPoint& c) : p(c.p), r(c.r), g(c.g), b(c.b) {}
+ColorPoint& ColorPoint::operator=(const ColorPoint &c) {
+  if (this == &c) { return *this; }
+  p = c.p; r = c.r; g = c.g; b = c.b;
+  return *this;
+}
+unsigned long ColorPoint::GetHex() {
+  // This function gives Hex color for ImGui
+  return (0xff << 24) +
+    ((static_cast<uint8_t>(b * 255.f) & 0xff) << 16) +
+    ((static_cast<uint8_t>(g * 255.f) & 0xff) << 8) +
+    ((static_cast<uint8_t>(r * 255.f) & 0xff));
+}
+
+OpacityPoint_Linear::OpacityPoint_Linear
+(const float cp, const float ca) : p(cp), a(ca){}
+OpacityPoint_Linear::OpacityPoint_Linear
+(const OpacityPoint_Linear& c) : p(c.p), a(c.a) {}
+OpacityPoint_Linear& OpacityPoint_Linear::operator=
+(const OpacityPoint_Linear &c) {
+  if (this == &c) { return *this; }
+  p = c.p; a = c.a;
+  return *this;
+}
+
+OpacityPoint_Gaussian::OpacityPoint_Gaussian
+(const float cp,  const float ca,
+ const float csw, const float csy,
+ const float cbx, const float cby) 
+  : p(cp), a(ca), sw(csw), sy(csy), bx(cbx), by(cby) {}
+OpacityPoint_Gaussian::OpacityPoint_Gaussian
+(const OpacityPoint_Gaussian& c) 
+  : p(c.p), a(c.a), sw(c.sw), sy(c.sy), bx(c.bx), by(c.by) {}
+OpacityPoint_Gaussian& OpacityPoint_Gaussian::operator=
+(const OpacityPoint_Gaussian &c) {
+  if (this == &c) { return *this; }
+  p = c.p; a = c.a; sw = c.sw; sy = c.sy; bx = c.bx; by = c.by;
+  return *this;
+}
+
+// ======================================================================== //

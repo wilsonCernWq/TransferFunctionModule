@@ -393,11 +393,11 @@ void TransferFunctionWidget::LoadDefaultMap() {
                                         ct.second[i*4+3]);
     }
     tfn_o_list.emplace_back(5);
-    tfn_o_list.back()[0] = OpacityPoint(0.00f, 0.00f);
-    tfn_o_list.back()[1] = OpacityPoint(0.25f, 0.25f);
-    tfn_o_list.back()[2] = OpacityPoint(0.50f, 0.50f);
-    tfn_o_list.back()[3] = OpacityPoint(0.75f, 0.75f);
-    tfn_o_list.back()[4] = OpacityPoint(1.00f, 1.00f);
+    tfn_o_list.back()[0] = OpacityPoint_Linear(0.00f, 0.00f);
+    tfn_o_list.back()[1] = OpacityPoint_Linear(0.25f, 0.25f);
+    tfn_o_list.back()[2] = OpacityPoint_Linear(0.50f, 0.50f);
+    tfn_o_list.back()[3] = OpacityPoint_Linear(0.75f, 0.75f);
+    tfn_o_list.back()[4] = OpacityPoint_Linear(1.00f, 1.00f);
     tfn_editable.push_back(ct.second.size() < 40);
     tfn_names.push_back(ct.first);
   }
