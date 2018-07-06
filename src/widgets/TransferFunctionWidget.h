@@ -23,24 +23,32 @@ namespace tfn {
   namespace tfn_widget {
     class TFN_MODULE_INTERFACE TransferFunctionWidget
     {
+    private:
+      using setter = std::function<void(const list1f&,const list1f&,const range1f&)>;
+    private:
+      // Variables Controlled by Users
+      setter tfn_sample_set;
+      range1f valueRange;
+      range1f defaultRange;
+      // Flags
+      // tfn_changed:   
+      //     Track if the function changed and must be re-uploaded.
+      //     We start by marking it changed to upload the initial palette
+      bool   tfn_changed{true};
+      // OpenGL Variables
+      // * The 2d palette texture on the GPU for displaying the color map in the UI.
+      GLuint tfn_palette;
+    private: // Local functions
+      void loadDefaultTfnMaps();
+      void selectTfnMap(int);
     public:
-      TransferFunctionWidget(const std::function<void
-                             (const std::vector<float>&,
-                              const std::vector<float>&,
-                              const std::array<float, 2>&)>&);	
+      TransferFunctionWidget(const setter&);
       ~TransferFunctionWidget();
       TransferFunctionWidget(const TransferFunctionWidget &);
       TransferFunctionWidget& operator=(const TransferFunctionWidget &);
-      /* Control Widget Values
+      /* Setup the default data value range for the transfer function
        */
-      void setDefaultRange(const float& a, const float& b) 
-      {
-	defaultRange[0] = a;
-	defaultRange[1] = b;
-	valueRange[0] = a;
-	valueRange[1] = b;
-	tfn_changed = true;
-      }
+      void setDefaultRange(const float& a, const float& b);
       /* Draw the transfer function editor widget, returns true if the
        * transfer function changed
        */
@@ -48,13 +56,14 @@ namespace tfn {
       /* Render the transfer function to a 1D texture that can
        * be applied to volume data
        */
-      void render(size_t tfn_w, size_t tfn_h = 1);
+      void render(size_t tfn_w = 256, size_t tfn_h = 1);
       // Load the transfer function in the file passed and set it active
       void load(const std::string &fileName);
       // Save the current transfer function out to the file
       void save(const std::string &fileName) const;
     private:
       void DrawTFNEditor(const float margin, const float height);
+
     private:      
 
       // TODO
@@ -65,17 +74,8 @@ namespace tfn {
 /* 	tfn::TransferFunction reader; */
 /*       }; */
 
-    private:
       
-      // Core Handler
-      std::function<void(const std::vector<float>&,
-			 const std::vector<float>&,
-			 const std::array<float, 2>&
-			 )> tfn_sample_set;
       std::vector<tfn::TransferFunction> tfn_readers;
-      std::array<float, 2> valueRange;
-      std::array<float, 2> defaultRange;
-
       // TFNs information:
       std::vector<bool> tfn_editable;
       std::vector<std::vector<ColorPoint>>   tfn_c_list;
@@ -89,11 +89,6 @@ namespace tfn {
       bool tfn_edit;
       std::vector<char> tfn_text_buffer; // The filename input text buffer
 
-      // Flags:
-      // tfn_changed:   
-      //     Track if the function changed and must be re-uploaded.
-      //     We start by marking it changed to upload the initial palette
-      bool   tfn_changed{true};
 
       // Meta Data
       // * Interpolated trasnfer function size
@@ -102,11 +97,6 @@ namespace tfn {
 
       // * The selected transfer function being shown
       int  tfn_selection;      
-      // * The 2d palette texture on the GPU for displaying the color map in the UI.
-      GLuint tfn_palette;
-      // Local functions
-      void LoadDefaultMap();
-      void SetTFNSelection(int);
     };
   }//::tfn_widget
 }//::tfn

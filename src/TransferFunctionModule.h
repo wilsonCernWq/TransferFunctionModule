@@ -42,11 +42,19 @@ namespace tfn {
     struct vec3fa   { float x, y, z; union { int a; unsigned u; float w; }; };
     struct vec3i    { int x, y, z; };
     struct vec4f    { float x, y, z, w; };
+    struct vec4i    { int x, y, z, w; };
     struct box2i    { vec2i lower, upper; };
+    struct box2f    { vec2f lower, upper; };
     struct box3i    { vec3i lower, upper; };
     struct box3f    { vec3f lower, upper; };
     struct linear3f { vec3f vx, vy, vz; };
     struct affine3f { linear3f l; vec3f p; };
+    using  range1f = std::array<float,2>;
+    using  range2f = std::array<vec2f,2>;
+    using  range3f = std::array<vec3f,2>;
+    using  list1f  = std::vector<float>;
+    using  list2f  = std::vector<vec2f>;
+    using  list3f  = std::vector<vec3f>;
 };
 #endif
 

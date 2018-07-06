@@ -13,7 +13,7 @@
 #include <imconfig.h>
 
 #include "TransferFunctionWidget.h"
-#include "TransferFunctionDefinitions.h"
+#include "DefaultTransferFunctionMaps.h"
 
 using namespace tfn;
 using namespace tfn_widget;
@@ -45,10 +45,9 @@ float lerp(const float &l, const float &r,
 }
 
 void
-TransferFunctionWidget::SetTFNSelection(int selection) {
+TransferFunctionWidget::selectTfnMap(int selection) {
   if (tfn_selection != selection) {
-    tfn_selection = selection;
-    // Remember to update other constructors as well
+    tfn_selection = selection; // Remember to update other constructors as well
     tfn_c = &(tfn_c_list[selection]);
     tfn_o = &(tfn_o_list[selection]);
     tfn_edit = tfn_editable[selection];
@@ -61,9 +60,7 @@ TransferFunctionWidget::~TransferFunctionWidget() {
 }
 
 TransferFunctionWidget::TransferFunctionWidget
-(const std::function
- <void(const std::vector<float> &, const std::vector<float> &,
-       const std::array<float, 2>&)> &sample_value_setter)
+(const setter &sample_value_setter)
   :
   tfn_selection(0),
   tfn_changed(true),
@@ -73,7 +70,7 @@ TransferFunctionWidget::TransferFunctionWidget
   valueRange{0.f,0.f},
   defaultRange{0.f,0.f}
 {
-  LoadDefaultMap();
+  loadDefaultTfnMaps();
   tfn_c = &(tfn_c_list[tfn_selection]);
   tfn_o = &(tfn_o_list[tfn_selection]);
   tfn_edit = tfn_editable[tfn_selection];
@@ -113,6 +110,14 @@ TransferFunctionWidget::operator=
   defaultRange[0] = core.defaultRange[0];
   defaultRange[1] = core.defaultRange[1];
   return *this;
+}
+
+void TransferFunctionWidget::setDefaultRange
+(const float& a, const float& b) 
+{
+  valueRange[0] = defaultRange[0] = a;
+  valueRange[1] = defaultRange[1] = b;
+  tfn_changed = true;
 }
 
 void TransferFunctionWidget::DrawTFNEditor
@@ -243,7 +248,7 @@ void TransferFunctionWidget::DrawTFNEditor
                                 (*tfn_c)[i + 1].p);
         }
         tfn_changed = true;
-      } //else if (ImGui::IsItemHovered()) { display_helper_0 = true; }
+      }
     }
   }
   // draw opacity control points
@@ -282,7 +287,7 @@ void TransferFunctionWidget::DrawTFNEditor
                                 (*tfn_o)[i + 1].p);
         }
         tfn_changed = true;
-      } //else if (ImGui::IsItemHovered()) { display_helper_0 = true; }
+      }
     }
   }
   // draw background interaction
@@ -307,7 +312,6 @@ void TransferFunctionWidget::DrawTFNEditor
     tfn_c->insert(tfn_c->begin() + ir, pt);
     tfn_changed = true;
   }
-  //if (ImGui::IsItemHovered()) { display_helper_1 = true; }
   // draw background interaction
   ImGui::SetCursorScreenPos(ImVec2(canvas_x + margin, 
                                    canvas_y - height - margin));
@@ -326,7 +330,6 @@ void TransferFunctionWidget::DrawTFNEditor
     tfn_o->insert(tfn_o->begin() + idx, pt);
     tfn_changed = true;
   }
-  //if (ImGui::IsItemHovered()) { display_helper_1 = true; }
   // update cursors
   canvas_y += 4.f * color_len + margin;
   canvas_avail_y -= 4.f * color_len + margin;
@@ -389,7 +392,7 @@ bool TransferFunctionWidget::drawUI(bool* p_open) {
     }
     ImGui::SetCursorPosX(margin);
     if (ImGui::Combo(" color tables", &curr_tfn, curr_names.c_str())) {
-      SetTFNSelection(curr_tfn);
+      selectTfnMap(curr_tfn);
     }
   }
   // display transfer function value range
@@ -507,7 +510,7 @@ void TransferFunctionWidget::load(const std::string &fileName)
   tfn_o_list.emplace_back(o_size);
   tfn_editable.push_back(false); // TODO we dont want to edit loaded TFN
   tfn_names.push_back(tfn_new.name);
-  SetTFNSelection(tfn_names.size() - 1); // set the loaded function as current
+  selectTfnMap(tfn_names.size() - 1); // set the loaded function as current
   if (c_size < 2) {
     throw std::runtime_error("transfer function contains too "
                              "few color points");
