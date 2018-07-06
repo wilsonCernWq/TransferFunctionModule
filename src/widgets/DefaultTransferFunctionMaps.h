@@ -383,7 +383,7 @@ static const std::map<std::string, std::vector<float>> _predef_color_table_ = {
   },
 };
 
-void TransferFunctionWidget::loadDefaultTfnMaps() {
+void TransferFunctionWidget::loadDefaultTfns() {
   for (auto& ct : _predef_color_table_) {
     tfn_c_list.emplace_back(ct.second.size()/4);
     for (size_t i = 0; i < ct.second.size()/4; ++i) {

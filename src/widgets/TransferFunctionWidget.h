@@ -31,16 +31,14 @@ namespace tfn {
       range1f valueRange;
       range1f defaultRange;
       // Flags
-      // tfn_changed:   
-      //     Track if the function changed and must be re-uploaded.
-      //     We start by marking it changed to upload the initial palette
+      // tfn_changed: Track if the function changed and must be re-uploaded.
+      //              We start by marking it changed to upload the initial
+      //              palette
       bool   tfn_changed{true};
       // OpenGL Variables
-      // * The 2d palette texture on the GPU for displaying the color map in the UI.
+      // tfn_palette: The 2d palette texture on the GPU for displaying the
+      //              color map preview in the UI.
       GLuint tfn_palette;
-    private: // Local functions
-      void loadDefaultTfnMaps();
-      void selectTfnMap(int);
     public:
       TransferFunctionWidget(const setter&);
       ~TransferFunctionWidget();
@@ -61,8 +59,17 @@ namespace tfn {
       void load(const std::string &fileName);
       // Save the current transfer function out to the file
       void save(const std::string &fileName) const;
-    private:
-      void DrawTFNEditor(const float margin, const float height);
+    private: 
+      // Local functions
+      /** Namely, make a selected transfer function table current
+       */
+      void selectTfn(int);
+      /** Load all the pre-defined transfer function maps
+       */
+      void loadDefaultTfns();
+      /** Draw the Tfn Editor in a window
+       */
+      void drawTfnEditor(const float margin, const float height);
 
     private:      
 

@@ -45,9 +45,9 @@ float lerp(const float &l, const float &r,
 }
 
 void
-TransferFunctionWidget::selectTfnMap(int selection) {
+TransferFunctionWidget::selectTfn(int selection) {
   if (tfn_selection != selection) {
-    tfn_selection = selection; // Remember to update other constructors as well
+    tfn_selection = selection; // Remember to update other constructors also
     tfn_c = &(tfn_c_list[selection]);
     tfn_o = &(tfn_o_list[selection]);
     tfn_edit = tfn_editable[selection];
@@ -70,7 +70,7 @@ TransferFunctionWidget::TransferFunctionWidget
   valueRange{0.f,0.f},
   defaultRange{0.f,0.f}
 {
-  loadDefaultTfnMaps();
+  loadDefaultTfns();
   tfn_c = &(tfn_c_list[tfn_selection]);
   tfn_o = &(tfn_o_list[tfn_selection]);
   tfn_edit = tfn_editable[tfn_selection];
@@ -120,7 +120,7 @@ void TransferFunctionWidget::setDefaultRange
   tfn_changed = true;
 }
 
-void TransferFunctionWidget::DrawTFNEditor
+void TransferFunctionWidget::drawTfnEditor
 (const float margin, const float height)
 {
   // style
@@ -260,7 +260,8 @@ void TransferFunctionWidget::DrawTFNEditor
                        canvas_y - height * (*tfn_o)[i].a - margin);
       ImGui::SetCursorScreenPos(ImVec2(pos.x - opacity_len,
                                        pos.y - opacity_len));
-      ImGui::InvisibleButton(("##OpacityControl-" + std::to_string(i)).c_str(),
+      ImGui::InvisibleButton(("##OpacityControl-" + 
+                              std::to_string(i)).c_str(),
                              ImVec2(2.f * opacity_len, 2.f * opacity_len));
       ImGui::SetCursorScreenPos(ImVec2(canvas_x, canvas_y));
       // dark bounding box
@@ -336,90 +337,90 @@ void TransferFunctionWidget::DrawTFNEditor
   ImGui::SetCursorScreenPos(ImVec2(canvas_x, canvas_y));
 }
 
-bool TransferFunctionWidget::drawUI(bool* p_open) {
+bool TransferFunctionWidget::drawUI(bool* p_open) 
+{
   // ImGui::ShowTestWindow();
-  //------------ Early Termination --------------------
-  ImGui::SetNextWindowSizeConstraints(ImVec2(400,250),ImVec2(FLT_MAX,FLT_MAX));
+  //------------ Start a Window -----------------------
+  ImGui::SetNextWindowSizeConstraints(ImVec2(400,250),
+                                      ImVec2(FLT_MAX,FLT_MAX));
   if (!ImGui::Begin("Transfer Function Widget", p_open)) {
     ImGui::End(); return false;
   }
-  //------------ Parameters ---------------------------
+  //------------ Styling ------------------------------
   const float margin = 20.f;
-  //------------ Display Help Messages ----------------
-  // title
-  ImGui::Spacing();
-  ImGui::SetCursorPosX(margin);
-  ImGui::Text("1D Transfer Function");
-  ImGui::SameLine();
-  {
-    ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 2.f);
-    ImGui::Button("help");
-    if (ImGui::IsItemHovered()) {
-      ImGui::SetTooltip("Double right click a control point to delete it\n"
-                        "Single left click and drag a control point to "
-                        "move it\n"
-                        "Double left click on an empty area to add a control "
-                        "point\n");
-    }
-    ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 2.f);
-  }
-  ImGui::Spacing();
   //------------ Basic Controls -----------------------
-  // load a transfer function from file
-  ImGui::SetCursorPosX(margin);
-  ImGui::InputText("", tfn_text_buffer.data(), tfn_text_buffer.size() - 1);
-  ImGui::SameLine();
-  if (ImGui::Button("load a new tfn")) {
-    try {
-      std::string s = tfn_text_buffer.data();
-      s.erase(s.find_last_not_of(" \n\r\t") + 1);
-      s.erase(0, s.find_first_not_of(" \n\r\t"));
-      load(s.c_str());
-    } catch (const std::runtime_error &error) {
-      std::cerr << "\033[1;33m" << "Error: " << error.what() << "\033[0m"
-                << std::endl;
-    }
-  }
-  // TODO: save function is not implemented
-  // if (ImGui::Button("save")) { save(tfn_text_buffer.data()); }
-  // built-in color lists
-  {
-    static int curr_tfn = tfn_selection;
-    static std::string curr_names = "";
-    curr_names = "";
-    for (auto& n : tfn_names) {
-      curr_names += n + '\0';
-    }
-    ImGui::SetCursorPosX(margin);
-    if (ImGui::Combo(" color tables", &curr_tfn, curr_names.c_str())) {
-      selectTfnMap(curr_tfn);
-    }
-  }
-  // display transfer function value range
-  ImGui::SetCursorPosX(margin);
-  if (defaultRange[1] > defaultRange[0]) {
-    if (ImGui::DragFloat2(" value range", valueRange.data(),
-  			  (defaultRange[1] - defaultRange[0]) / 1000.f,
-  			  defaultRange[0], defaultRange[1])) {
-      tfn_changed = true;
-    }
-  } else {
-    if (ImGui::DragFloat2(" value range", valueRange.data())) {
-      tfn_changed = true;
-    }
-  }
-  //------------ Transfer Function Editor -------------
-  //bool display_helper_0 = false; // How to operate/delete a control point
-  //bool display_helper_1 = false; // How to add control points
-  float avail_h  = ImGui::GetContentRegionAvail().y;
   ImGui::Spacing();
-  DrawTFNEditor(11.f, avail_h - 60.f);
+  ImGui::SetCursorPosX(margin);
+  ImGui::BeginGroup();
+  {
+    // title
+    ImGui::Text("1D Transfer Function");
+    ImGui::SameLine();
+    {
+      ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 2.f);
+      ImGui::Button("help");
+      if (ImGui::IsItemHovered()) {
+        ImGui::SetTooltip("Double right click a control point to delete it\n"
+                          "Single left click and drag a control point to "
+                          "move it\n"
+                          "Double left click on an empty area to add a "
+                          "control point\n");
+      }
+      ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 2.f);
+    }
+    ImGui::Spacing();
+    // load a transfer function from file
+    ImGui::InputText("", tfn_text_buffer.data(), tfn_text_buffer.size() - 1);
+    ImGui::SameLine();
+    if (ImGui::Button("load a new tfn")) {
+      try {
+        std::string s = tfn_text_buffer.data();
+        s.erase(s.find_last_not_of(" \n\r\t") + 1);
+        s.erase(0, s.find_first_not_of(" \n\r\t"));
+        load(s.c_str());
+      } catch (const std::runtime_error &error) {
+        std::cerr << "\033[1;33m" << "Error: " << error.what() << "\033[0m"
+                  << std::endl;
+      }
+  
+    }
+    // TODO: save function is not implemented
+    // if (ImGui::Button("save")) { save(tfn_text_buffer.data()); }
+    // built-in color lists
+    {
+      static int curr_tfn = tfn_selection;
+      static std::string curr_names = "";
+      curr_names = "";
+      for (auto& n : tfn_names) {
+        curr_names += n + '\0';
+      }
+      if (ImGui::Combo(" color tables", &curr_tfn, curr_names.c_str())) {
+        selectTfn(curr_tfn);
+      }
+    }
+    // display transfer function value range
+    if (defaultRange[1] > defaultRange[0]) {
+      if (ImGui::DragFloat2(" value range", valueRange.data(),
+                            (defaultRange[1] - defaultRange[0]) / 1000.f,
+                            defaultRange[0], defaultRange[1])) {
+        tfn_changed = true;
+      }
+    } else {
+      if (ImGui::DragFloat2(" value range", valueRange.data())) {
+        tfn_changed = true;
+      }
+    }
+  }
+  ImGui::EndGroup();
+  //------------ Transfer Function Editor -------------
+  ImGui::Spacing();
+  drawTfnEditor(11.f, ImGui::GetContentRegionAvail().y - 60.f);
   //------------ End Transfer Function ----------------
   ImGui::End();
   return true;
 }
 
-void RenderTFNTexture(GLuint &tex, int width, int height) 
+void renderTFNTexture(GLuint &tex, int width, int height) 
 {
   GLint prevBinding = 0;
   glGetIntegerv(GL_TEXTURE_BINDING_2D, &prevBinding);
@@ -438,11 +439,8 @@ void RenderTFNTexture(GLuint &tex, int width, int height)
 
 void TransferFunctionWidget::render(size_t tfn_w, size_t tfn_h) 
 {
-
   // Upload to GL if the transfer function has changed
-  if (!tfn_palette) {
-    RenderTFNTexture(tfn_palette, tfn_w, tfn_h);
-  }
+  if (!tfn_palette) { renderTFNTexture(tfn_palette, tfn_w, tfn_h); }
 
   // Update texture color
   if (tfn_changed) {
@@ -510,7 +508,7 @@ void TransferFunctionWidget::load(const std::string &fileName)
   tfn_o_list.emplace_back(o_size);
   tfn_editable.push_back(false); // TODO we dont want to edit loaded TFN
   tfn_names.push_back(tfn_new.name);
-  selectTfnMap(tfn_names.size() - 1); // set the loaded function as current
+  selectTfn(tfn_names.size() - 1); // set the loaded function as current
   if (c_size < 2) {
     throw std::runtime_error("transfer function contains too "
                              "few color points");
