@@ -94,13 +94,14 @@ namespace tfn {
     float p; // location of the control point [0, 1]
     float r, g, b;
     ColorPoint() = default;
-    ColorPoint(const float cp, const float cr, const float cg, const float cb);
+    ColorPoint(const float cp, const float cr, 
+               const float cg, const float cb);
     ColorPoint(const ColorPoint& c);
     ColorPoint& operator=(const ColorPoint &c);
     unsigned long GetHex();
   };
 
-  struct OpacityPoint_Linear {
+  struct TFN_MODULE_INTERFACE OpacityPoint_Linear {
     float p; // location of the control point [0, 1]
     float a;
     OpacityPoint_Linear() = default;
@@ -109,7 +110,7 @@ namespace tfn {
     OpacityPoint_Linear& operator=(const OpacityPoint_Linear &c);
   };
 
-  struct OpacityPoint_Gaussian {
+  struct TFN_MODULE_INTERFACE OpacityPoint_Gaussian {
     float p; // location of the control point [0, 1]
     float a;
     float sw, sy; // width/height of the gaussian function
@@ -143,5 +144,13 @@ namespace tfn {
     // Save the transfer function data to the file
     void save(const std::string &fileName) const;
   };
+
+  struct TFN_MODULE_INTERFACE TransferFunctionData {
+    bool editable;
+    std::vector<ColorPoint> color_points;
+    std::vector<OpacityPoint_Linear> opaticy_points;
+    tfn::TransferFunction data;
+  };
+
 }
 
