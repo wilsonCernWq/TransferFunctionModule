@@ -18,6 +18,7 @@
 
 #include <vector>
 #include <string>
+#include <array>
 
 #ifdef TFNMODULE_EXTERNAL_VECTOR_TYPES
 /*! we assume the app already defines osp::vec types. Note those
