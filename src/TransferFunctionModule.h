@@ -16,8 +16,21 @@
 
 #pragma once
 
-#include <vector>
-#include <string>
+#ifdef _WIN32
+  #ifdef tfn_module_EXPORTS
+    #define TFN_MODULE_INTERFACE __declspec(dllexport)
+  #else
+    #define TFN_MODULE_INTERFACE __declspec(dllimport)
+  #endif
+#else
+  #define TFN_MODULE_INTERFACE
+#endif
+
+#define TFN_MODULE_VERSION "0.01"
+namespace tfn 
+{
+  inline TFN_MODULE_INTERFACE const char* GetVersion() { return TFN_MODULE_VERSION; };
+};
 
 #ifdef TFNMODULE_EXTERNAL_VECTOR_TYPES
 /*! we assume the app already defines osp::vec types. Note those
@@ -58,15 +71,8 @@ namespace tfn {
 };
 #endif
 
-#ifdef _WIN32
-  #ifdef tfn_module_EXPORTS
-    #define TFN_MODULE_INTERFACE __declspec(dllexport)
-  #else
-    #define TFN_MODULE_INTERFACE __declspec(dllimport)
-  #endif
-#else
-  #define TFN_MODULE_INTERFACE
-#endif
+#include <string>
+#include <vector>
 
 /* The transfer function file format used by the OSPRay sample apps is a
  * little endian binary format with the following layout:
