@@ -70,6 +70,10 @@ namespace tfn {
       /** Draw the Tfn Editor in a window
        */
       void drawTfnEditor(const float margin, const float height);
+      tfn::vec4f drawTfnEditor_PreviewTexture(void* draw_list,
+                                              const tfn::vec2f&,
+                                              const tfn::vec2f&, 
+                                              const tfn::vec4f&);
 
     private:      
 
@@ -107,4 +111,3 @@ namespace tfn {
     };
   }//::tfn_widget
 }//::tfn
-
