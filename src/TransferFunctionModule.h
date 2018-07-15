@@ -73,6 +73,7 @@ namespace tfn {
 
 #include <string>
 #include <vector>
+#include <array>
 
 /* The transfer function file format used by the OSPRay sample apps is a
  * little endian binary format with the following layout:
