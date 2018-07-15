@@ -278,51 +278,26 @@ tfn::vec4f TransferFunctionWidget::drawTfnEditor_OpacityControlPoints
   return vec4f();
 }
 
-void TransferFunctionWidget::drawTfnEditor
-(const float margin, const float height)
+tfn::vec4f TransferFunctionWidget::drawTfnEditor_InteractionBlocks
+(void* _draw_list,
+ const tfn::vec3f& margin, /* left, right, spacing*/
+ const tfn::vec2f& size,
+ const tfn::vec4f& cursor,
+ const float& color_len,
+ const float& opacity_len)
 {
-  // style
-  // only God and me know what do they do ...
-  ImDrawList *draw_list = ImGui::GetWindowDrawList();
-  const float canvas_x  = ImGui::GetCursorScreenPos().x;
-  float       canvas_y  = ImGui::GetCursorScreenPos().y;
-  
-  float canvas_avail_x  = ImGui::GetContentRegionAvail().x;
-  float canvas_avail_y  = ImGui::GetContentRegionAvail().y;
   const float mouse_x   = ImGui::GetMousePos().x;
   const float mouse_y   = ImGui::GetMousePos().y;
   const float scroll_x  = ImGui::GetScrollX();
   const float scroll_y  = ImGui::GetScrollY();
-  const float width = canvas_avail_x - 2.f * margin;
-  const float color_len   = 9.f;
-  const float opacity_len = 7.f;
-  // debug
-  const tfn::vec3f m {margin, margin, margin};
-  const tfn::vec2f s {width, height};
-  tfn::vec4f c {canvas_x, canvas_y, canvas_avail_x, canvas_avail_y};
-  // draw preview texture
-  c = drawTfnEditor_PreviewTexture(draw_list, m, s, c);
-  canvas_y = c.y;
-  canvas_avail_x = c.z;
-  canvas_avail_y = c.w;
-  // draw color control points
-  ImGui::SetCursorScreenPos(ImVec2(canvas_x, canvas_y));
-  if (tfn_edit) {
-    drawTfnEditor_ColorControlPoints(draw_list, m, s, c, color_len);
-  }
-  // draw opacity control points
-  ImGui::SetCursorScreenPos(ImVec2(canvas_x, canvas_y));
-  {
-    drawTfnEditor_OpacityControlPoints(draw_list, m, s, c, opacity_len);
-  }
-  // draw background interaction
-  ImGui::SetCursorScreenPos(ImVec2(canvas_x + margin, canvas_y - margin));
+  auto draw_list = (ImDrawList*)_draw_list;
+  ImGui::SetCursorScreenPos(ImVec2(cursor.x + margin.x, cursor.y - margin.z));
   ImGui::InvisibleButton("##tfn_palette_color",
-                         ImVec2(width, 2.5 * color_len));
+                         ImVec2(size.x, 2.5 * color_len));
   // add color point
   if (tfn_edit && ImGui::IsMouseDoubleClicked(0) && ImGui::IsItemHovered()) {
-    const float p = clamp((mouse_x - canvas_x - margin - scroll_x) /
-                          (float) width, 0.f, 1.f);
+    const float p = clamp((mouse_x - cursor.x - margin.x - scroll_x) /
+                          (float) size.x, 0.f, 1.f);
     const int ir = find_idx(*tfn_c, p);
     const int il = ir - 1;
     const float pr = (*tfn_c)[ir].p;
@@ -338,16 +313,16 @@ void TransferFunctionWidget::drawTfnEditor
     tfn_changed = true;
   }
   // draw background interaction
-  ImGui::SetCursorScreenPos(ImVec2(canvas_x + margin, 
-                                   canvas_y - height - margin));
-  ImGui::InvisibleButton("##tfn_palette_opacity", ImVec2(width, height));
+  ImGui::SetCursorScreenPos(ImVec2(cursor.x + margin.x, 
+                                   cursor.y - size.y - margin.z));
+  ImGui::InvisibleButton("##tfn_palette_opacity", ImVec2(size.x, size.y));
   // add opacity point
   if (ImGui::IsMouseDoubleClicked(0) && ImGui::IsItemHovered()) {
-    const float x = clamp((mouse_x - canvas_x - margin - scroll_x) / 
-                          (float) width,
+    const float x = clamp((mouse_x - cursor.x - margin.x - scroll_x) / 
+                          (float) size.x,
                           0.f, 1.f);
-    const float y = clamp(-(mouse_y - canvas_y + margin - scroll_y) /
-                          (float) height,
+    const float y = clamp(-(mouse_y - cursor.y + margin.x - scroll_y) /
+                          (float) size.y,
                           0.f, 1.f);
     const int idx = find_idx(*tfn_o, x);
     OpacityPoint_Linear pt;
@@ -355,9 +330,43 @@ void TransferFunctionWidget::drawTfnEditor
     tfn_o->insert(tfn_o->begin() + idx, pt);
     tfn_changed = true;
   }
+}
+
+void TransferFunctionWidget::drawTfnEditor
+(const float margin, const float height)
+{
+  // style
+  ImDrawList *draw_list = ImGui::GetWindowDrawList();
+  const float canvas_x  = ImGui::GetCursorScreenPos().x;
+  float       canvas_y  = ImGui::GetCursorScreenPos().y;  
+  const float width = ImGui::GetContentRegionAvail().x - 2.f * margin;
+  const float color_len   = 9.f;
+  const float opacity_len = 7.f;
+  // debug
+  const tfn::vec3f m {margin, margin, margin};
+  const tfn::vec2f s {width, height};
+  tfn::vec4f c = {
+    canvas_x, canvas_y, 
+    ImGui::GetContentRegionAvail().x,
+    ImGui::GetContentRegionAvail().y
+  };
+  // draw preview texture
+  c = drawTfnEditor_PreviewTexture(draw_list, m, s, c);
+  canvas_y = c.y;
+  // draw color control points
+  ImGui::SetCursorScreenPos(ImVec2(canvas_x, canvas_y));
+  if (tfn_edit) {
+    drawTfnEditor_ColorControlPoints(draw_list, m, s, c, color_len);
+  }
+  // draw opacity control points
+  ImGui::SetCursorScreenPos(ImVec2(canvas_x, canvas_y));
+  {
+    drawTfnEditor_OpacityControlPoints(draw_list, m, s, c, opacity_len);
+  }
+  // draw background interaction
+  drawTfnEditor_InteractionBlocks(draw_list, m, s, c, color_len, opacity_len);
   // update cursors
   canvas_y += 4.f * color_len + margin;
-  canvas_avail_y -= 4.f * color_len + margin;
   ImGui::SetCursorScreenPos(ImVec2(canvas_x, canvas_y));
 }
 
