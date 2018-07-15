@@ -19,7 +19,8 @@
 using namespace tfn;
 using namespace tfn_widget;
 
-TransferFunctionWidget::~TransferFunctionWidget() {
+TransferFunctionWidget::~TransferFunctionWidget() 
+{
   if (tfn_palette) { glDeleteTextures(1, &tfn_palette); }
 }
 
@@ -230,6 +231,53 @@ tfn::vec4f TransferFunctionWidget::drawTfnEditor_ColorControlPoints
   return vec4f();
 }
 
+tfn::vec4f TransferFunctionWidget::drawTfnEditor_OpacityControlPoints
+(void* _draw_list,
+ const tfn::vec3f& margin, /* left, right, spacing*/
+ const tfn::vec2f& size,
+ const tfn::vec4f& cursor,
+ const float& opacity_len)
+{
+  auto draw_list = (ImDrawList*)_draw_list;
+  // draw circles
+  for (int i = 0; i < tfn_o->size(); ++i) {
+    const ImVec2 pos(cursor.x + size.x * (*tfn_o)[i].p + margin.x,
+                     cursor.y - size.y * (*tfn_o)[i].a - margin.z);
+    ImGui::SetCursorScreenPos(ImVec2(pos.x - opacity_len,
+                                     pos.y - opacity_len));
+    ImGui::InvisibleButton(("##OpacityControl-" + 
+                            std::to_string(i)).c_str(),
+                           ImVec2(2.f * opacity_len, 2.f * opacity_len));
+    ImGui::SetCursorScreenPos(ImVec2(cursor.x, cursor.y));
+    // dark bounding box
+    draw_list->AddCircleFilled(pos, opacity_len, 0xFF565656);
+    // white background
+    draw_list->AddCircleFilled(pos, 0.8f * opacity_len, 0xFFD8D8D8);
+    // highlight
+    draw_list->AddCircleFilled(pos, 0.6f * opacity_len,
+                               ImGui::IsItemHovered() ? 
+                               0xFF051c33 : 0xFFD8D8D8);
+    // delete opacity point
+    if (ImGui::IsMouseDoubleClicked(1) && ImGui::IsItemHovered()) {
+      if (i > 0 && i < tfn_o->size() - 1) {
+        tfn_o->erase(tfn_o->begin() + i);
+        tfn_changed = true;
+      }
+    } else if (ImGui::IsItemActive()) {
+      ImVec2 delta = ImGui::GetIO().MouseDelta;
+      (*tfn_o)[i].a -= delta.y / size.y;
+      (*tfn_o)[i].a = clamp((*tfn_o)[i].a, 0.0f, 1.0f);
+      if (i > 0 && i < tfn_o->size() - 1) {
+        (*tfn_o)[i].p += delta.x / size.x;
+        (*tfn_o)[i].p = clamp((*tfn_o)[i].p, (*tfn_o)[i - 1].p,
+                              (*tfn_o)[i + 1].p);
+      }
+      tfn_changed = true;
+    }
+  }
+  return vec4f();
+}
+
 void TransferFunctionWidget::drawTfnEditor
 (const float margin, const float height)
 {
@@ -258,49 +306,14 @@ void TransferFunctionWidget::drawTfnEditor
   canvas_avail_x = c.z;
   canvas_avail_y = c.w;
   // draw color control points
-  // ImGui::SetCursorScreenPos(ImVec2(canvas_x, canvas_y));
+  ImGui::SetCursorScreenPos(ImVec2(canvas_x, canvas_y));
   if (tfn_edit) {
     drawTfnEditor_ColorControlPoints(draw_list, m, s, c, color_len);
   }
   // draw opacity control points
   ImGui::SetCursorScreenPos(ImVec2(canvas_x, canvas_y));
   {
-    // draw circles
-    for (int i = 0; i < tfn_o->size(); ++i) {
-      const ImVec2 pos(canvas_x + width * (*tfn_o)[i].p + margin,
-                       canvas_y - height * (*tfn_o)[i].a - margin);
-      ImGui::SetCursorScreenPos(ImVec2(pos.x - opacity_len,
-                                       pos.y - opacity_len));
-      ImGui::InvisibleButton(("##OpacityControl-" + 
-                              std::to_string(i)).c_str(),
-                             ImVec2(2.f * opacity_len, 2.f * opacity_len));
-      ImGui::SetCursorScreenPos(ImVec2(canvas_x, canvas_y));
-      // dark bounding box
-      draw_list->AddCircleFilled(pos, opacity_len, 0xFF565656);
-      // white background
-      draw_list->AddCircleFilled(pos, 0.8f * opacity_len, 0xFFD8D8D8);
-      // highlight
-      draw_list->AddCircleFilled(pos, 0.6f * opacity_len,
-                                 ImGui::IsItemHovered() ? 
-                                 0xFF051c33 : 0xFFD8D8D8);
-      // delete opacity point
-      if (ImGui::IsMouseDoubleClicked(1) && ImGui::IsItemHovered()) {
-        if (i > 0 && i < tfn_o->size() - 1) {
-          tfn_o->erase(tfn_o->begin() + i);
-          tfn_changed = true;
-        }
-      } else if (ImGui::IsItemActive()) {
-        ImVec2 delta = ImGui::GetIO().MouseDelta;
-        (*tfn_o)[i].a -= delta.y / height;
-        (*tfn_o)[i].a = clamp((*tfn_o)[i].a, 0.0f, 1.0f);
-        if (i > 0 && i < tfn_o->size() - 1) {
-          (*tfn_o)[i].p += delta.x / width;
-          (*tfn_o)[i].p = clamp((*tfn_o)[i].p, (*tfn_o)[i - 1].p,
-                                (*tfn_o)[i + 1].p);
-        }
-        tfn_changed = true;
-      }
-    }
+    drawTfnEditor_OpacityControlPoints(draw_list, m, s, c, opacity_len);
   }
   // draw background interaction
   ImGui::SetCursorScreenPos(ImVec2(canvas_x + margin, canvas_y - margin));
