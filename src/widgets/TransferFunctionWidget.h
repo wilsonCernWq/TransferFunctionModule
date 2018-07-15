@@ -21,11 +21,15 @@
 
 namespace tfn {
   namespace tfn_widget {
-    class TFN_MODULE_INTERFACE TransferFunctionWidget
-    {
-    private:
+
+    class TFN_MODULE_INTERFACE TransferFunctionWidget {
+      
+    private: // local type definitions
+
       using setter = std::function<void(const list1f&,const list1f&,const range1f&)>;
-    private:
+
+    private: // local variables
+
       // Variables Controlled by Users
       setter tfn_sample_set;
       range1f valueRange;
@@ -39,9 +43,11 @@ namespace tfn {
       // tfn_palette: The 2d palette texture on the GPU for displaying the
       //              color map preview in the UI.
       GLuint tfn_palette;
-    public:
-      TransferFunctionWidget(const setter&);
+
+    public: // global functions
+
       ~TransferFunctionWidget();
+      TransferFunctionWidget(const setter&);
       TransferFunctionWidget(const TransferFunctionWidget &);
       TransferFunctionWidget& operator=(const TransferFunctionWidget &);
       /* Setup the default data value range for the transfer function
@@ -59,23 +65,29 @@ namespace tfn {
       void load(const std::string &fileName);
       // Save the current transfer function out to the file
       void save(const std::string &fileName) const;
-    private: 
-      // Local functions
+
+    private: // local functions
+
       /** Namely, make a selected transfer function table current
        */
-      void selectTfn(int);
+      void setTfn(int);
       /** Load all the pre-defined transfer function maps
        */
-      void loadDefaultTfns();
+      void setDefaultTfns();
       /** Draw the Tfn Editor in a window
        */
       void drawTfnEditor(const float margin, const float height);
-      tfn::vec4f drawTfnEditor_PreviewTexture(void* draw_list,
+      tfn::vec4f drawTfnEditor_PreviewTexture(void* _draw_list, 
+                                              const tfn::vec3f&, 
                                               const tfn::vec2f&,
-                                              const tfn::vec2f&, 
                                               const tfn::vec4f&);
+      tfn::vec4f drawTfnEditor_ColorControlPoints(void* _draw_list, 
+                                                  const tfn::vec3f&,
+                                                  const tfn::vec2f&,
+                                                  const tfn::vec4f&,
+                                                  const float&);
 
-    private:      
+    private: // TODO: to be cleaned
 
       // TODO
       // This MAYBE the correct way of doing this
@@ -109,5 +121,6 @@ namespace tfn {
       // * The selected transfer function being shown
       int  tfn_selection;      
     };
-  }//::tfn_widget
-}//::tfn
+
+  } // ::tfn::tfn_widget
+} // ::tfn
