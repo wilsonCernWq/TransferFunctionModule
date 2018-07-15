@@ -120,40 +120,6 @@ void TransferFunctionWidget::setDefaultRange
   tfn_changed = true;
 }
 
-tfn::vec4f TransferFunctionWidget::drawTfnEditor_PreviewTexture
-(void* _draw_list,
- const tfn::vec2f& margin, /* left, right */
- const tfn::vec2f& size,
- const tfn::vec4f& cursor)
-{
-  auto draw_list = (ImDrawList*)_draw_list;
-  ImGui::SetCursorScreenPos(ImVec2(cursor.x + margin.x, cursor.y));
-  ImGui::Image(reinterpret_cast<void *>(tfn_palette), (const ImVec2&)size);
-  ImGui::SetCursorScreenPos((const ImVec2&)cursor);
-  // TODO: more generic way of drawing arbitary splats
-  for (int i = 0; i < tfn_o->size() - 1; ++i) {
-    std::vector<ImVec2> polyline;
-    polyline.emplace_back(cursor.x + margin.x + (*tfn_o)[i].p * size.x,
-                          cursor.y + size.y);
-    polyline.emplace_back(cursor.x + margin.x + (*tfn_o)[i].p * size.x,
-                          cursor.y + (1.f - (*tfn_o)[i    ].a) * size.y);
-    polyline.emplace_back(cursor.x + margin.x + (*tfn_o)[i + 1].p * size.x + 1,
-                          cursor.y + (1.f - (*tfn_o)[i + 1].a) * size.y);
-    polyline.emplace_back(cursor.x + margin.x + (*tfn_o)[i + 1].p * size.x + 1,
-                          cursor.y + size.y);
-    draw_list->AddConvexPolyFilled(polyline.data(), polyline.size(),
-                                   0xFFD8D8D8, true);
-  }
-  tfn::vec4f new_cursor = {
-    cursor.x, 
-    cursor.y + size.y,
-    cursor.z, 
-    cursor.w - size.y,
-  };
-  ImGui::SetCursorScreenPos((const ImVec2&)new_cursor);
-  return new_cursor;
-}
-
 void TransferFunctionWidget::drawTfnEditor
 (const float margin, const float height)
 {
@@ -162,7 +128,6 @@ void TransferFunctionWidget::drawTfnEditor
   ImDrawList *draw_list = ImGui::GetWindowDrawList();
   const float canvas_x  = ImGui::GetCursorScreenPos().x;
   float       canvas_y  = ImGui::GetCursorScreenPos().y;
-  
   float canvas_avail_x  = ImGui::GetContentRegionAvail().x;
   float canvas_avail_y  = ImGui::GetContentRegionAvail().y;
   const float mouse_x   = ImGui::GetMousePos().x;
@@ -171,16 +136,26 @@ void TransferFunctionWidget::drawTfnEditor
   const float scroll_y  = ImGui::GetScrollY();
   const float width = canvas_avail_x - 2.f * margin;
   const float color_len   = 9.f;
-  const float opacity_len = 7.f;    
+  const float opacity_len = 7.f;
   // draw preview texture
-  const tfn::vec2f m {margin, margin};
-  const tfn::vec2f s {width, height};
-  tfn::vec4f c {canvas_x, canvas_y, canvas_avail_x, canvas_avail_y};
-  c = drawTfnEditor_PreviewTexture(draw_list, m, s, c);
-  c.y += margin;
-  canvas_y = c.y;
-  canvas_avail_x = c.z;
-  canvas_avail_y = c.w;
+  ImGui::SetCursorScreenPos(ImVec2(canvas_x + margin, canvas_y));
+  ImGui::Image(reinterpret_cast<void *>(tfn_palette), ImVec2(width, height));
+  ImGui::SetCursorScreenPos(ImVec2(canvas_x, canvas_y));
+  for (int i = 0; i < tfn_o->size() - 1; ++i) {
+    std::vector<ImVec2> polyline;
+    polyline.emplace_back(canvas_x + margin + (*tfn_o)[i].p * width,
+                          canvas_y + height);
+    polyline.emplace_back(canvas_x + margin + (*tfn_o)[i].p * width,
+                          canvas_y + height - (*tfn_o)[i].a * height);
+    polyline.emplace_back(canvas_x + margin + (*tfn_o)[i + 1].p * width + 1,
+                          canvas_y + height - (*tfn_o)[i + 1].a * height);
+    polyline.emplace_back(canvas_x + margin + (*tfn_o)[i + 1].p * width + 1,
+                          canvas_y + height);
+    draw_list->AddConvexPolyFilled(polyline.data(), polyline.size(),
+                                   0xFFD8D8D8, true);
+  }
+  canvas_y += height + margin;
+  canvas_avail_y -= height + margin;
   // draw color control points
   ImGui::SetCursorScreenPos(ImVec2(canvas_x, canvas_y));
   if (tfn_edit) {
