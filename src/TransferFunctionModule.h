@@ -26,6 +26,10 @@
   #define TFN_MODULE_INTERFACE
 #endif
 
+#include <string>
+#include <vector>
+#include <array>
+
 #define TFN_MODULE_VERSION "0.02 WIP"
 namespace tfn 
 {
@@ -70,10 +74,6 @@ namespace tfn {
   using  list3f  = std::vector<vec3f>;
 };
 #endif
-
-#include <string>
-#include <vector>
-#include <array>
 
 /* The transfer function file format used by the OSPRay sample apps is a
  * little endian binary format with the following layout:
