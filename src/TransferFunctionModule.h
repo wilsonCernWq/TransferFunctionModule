@@ -33,7 +33,9 @@
 #define TFN_MODULE_VERSION "0.02 WIP"
 namespace tfn 
 {
-  inline TFN_MODULE_INTERFACE const char* GetVersion() { return TFN_MODULE_VERSION; };
+  inline TFN_MODULE_INTERFACE const char* GetVersion() { 
+    return TFN_MODULE_VERSION; 
+  };
 };
 
 #ifdef TFN_MODULE_EXTERNAL_VECTOR_TYPES
