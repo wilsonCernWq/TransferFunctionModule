@@ -14,70 +14,34 @@
 
 #include "TransferFunctionWidget.h"
 #include "DefaultTransferFunctionMaps.h"
+#include "HelperFunctions.h"
 
 using namespace tfn;
 using namespace tfn_widget;
 
-template<class T>
-const T &clamp(const T &v, const T &lo, const T &hi) {
-  return (v < lo) ? lo : (hi < v ? hi : v);
-}
-
-template<typename T>
-int find_idx(const T &A, float p, int l = -1, int r = -1) {
-  l = l == -1 ? 0 : l;
-  r = r == -1 ? A.size() - 1 : r;
-  int m = (r + l) / 2;
-  if (A[l].p > p) { return l; }
-  else if (A[r].p <= p) { return r + 1; }
-  else if ((m == l) || (m == r)) { return m + 1; }
-  else {
-    if (A[m].p <= p) { return find_idx(A, p, m, r); }
-    else { return find_idx(A, p, l, m); }
-  }
-}
-
-float lerp(const float &l, const float &r,
-           const float &pl, const float &pr, const float &p) {
-  const float dl = std::abs(pr - pl) > 0.0001f ? (p - pl) / (pr - pl) : 0.f;
-  const float dr = 1.f - dl;
-  return l * dr + r * dl;
-}
-
-void
-TransferFunctionWidget::selectTfn(int selection) {
-  if (tfn_selection != selection) {
-    tfn_selection = selection; // Remember to update other constructors also
-    tfn_c = &(tfn_c_list[selection]);
-    tfn_o = &(tfn_o_list[selection]);
-    tfn_edit = tfn_editable[selection];
-    tfn_changed = true;
-  }
-}
-
-TransferFunctionWidget::~TransferFunctionWidget() {
+TransferFunctionWidget::~TransferFunctionWidget() 
+{
   if (tfn_palette) { glDeleteTextures(1, &tfn_palette); }
 }
 
-TransferFunctionWidget::TransferFunctionWidget
-(const setter &sample_value_setter)
+TransferFunctionWidget::TransferFunctionWidget(const setter &fcn)
   :
   tfn_selection(0),
   tfn_changed(true),
   tfn_palette(0),
   tfn_text_buffer(512, '\0'),
-  tfn_sample_set(sample_value_setter),
+  tfn_sample_set(fcn),
   valueRange{0.f,0.f},
   defaultRange{0.f,0.f}
 {
-  loadDefaultTfns();
+  setDefaultTfns();
   tfn_c = &(tfn_c_list[tfn_selection]);
   tfn_o = &(tfn_o_list[tfn_selection]);
   tfn_edit = tfn_editable[tfn_selection];
 }
 
-TransferFunctionWidget::TransferFunctionWidget
-(const TransferFunctionWidget &core) :
+TransferFunctionWidget::TransferFunctionWidget(const TransferFunctionWidget &core) 
+  :
   tfn_c_list(core.tfn_c_list),
   tfn_o_list(core.tfn_o_list),
   tfn_readers(core.tfn_readers),
@@ -95,8 +59,8 @@ TransferFunctionWidget::TransferFunctionWidget
 }
 
 TransferFunctionWidget &
-TransferFunctionWidget::operator=
-(const tfn::tfn_widget::TransferFunctionWidget &core) {
+TransferFunctionWidget::operator=(const TransferFunctionWidget &core) 
+{
   if (this == &core) { return *this; }
   tfn_c_list = core.tfn_c_list;
   tfn_o_list = core.tfn_o_list;
@@ -112,193 +76,228 @@ TransferFunctionWidget::operator=
   return *this;
 }
 
-void TransferFunctionWidget::setDefaultRange
-(const float& a, const float& b) 
+void
+TransferFunctionWidget::setTfn(int selection) 
+{
+  if (tfn_selection != selection) {
+    tfn_selection = selection; // Remember to update other constructors also
+    tfn_c = &(tfn_c_list[selection]);
+    tfn_o = &(tfn_o_list[selection]);
+    tfn_edit = tfn_editable[selection];
+    tfn_changed = true;
+  }
+}
+
+void TransferFunctionWidget::setDefaultRange(const float& a, const float& b) 
 {
   valueRange[0] = defaultRange[0] = a;
   valueRange[1] = defaultRange[1] = b;
   tfn_changed = true;
 }
 
-void TransferFunctionWidget::drawTfnEditor
-(const float margin, const float height)
+tfn::vec4f TransferFunctionWidget::drawTfnEditor_PreviewTexture
+(void* _draw_list,
+ const tfn::vec3f& margin, /* left, right, spacing*/
+ const tfn::vec2f& size,
+ const tfn::vec4f& cursor)
 {
-  // style
-  // only God and me know what do they do ...
-  ImDrawList *draw_list = ImGui::GetWindowDrawList();
-  const float canvas_x  = ImGui::GetCursorScreenPos().x;
-  float       canvas_y  = ImGui::GetCursorScreenPos().y;
-  float canvas_avail_x  = ImGui::GetContentRegionAvail().x;
-  float canvas_avail_y  = ImGui::GetContentRegionAvail().y;
+  auto draw_list = (ImDrawList*)_draw_list;
+  ImGui::SetCursorScreenPos(ImVec2(cursor.x + margin.x, cursor.y));
+  ImGui::Image(reinterpret_cast<void *>(tfn_palette), (const ImVec2&)size);
+  ImGui::SetCursorScreenPos((const ImVec2&)cursor);
+  // TODO: more generic way of drawing arbitary splats
+  for (int i = 0; i < tfn_o->size() - 1; ++i) {
+    std::vector<ImVec2> polyline;
+    polyline.emplace_back(cursor.x + margin.x + (*tfn_o)[i].p * size.x,
+                          cursor.y + size.y);
+    polyline.emplace_back(cursor.x + margin.x + (*tfn_o)[i].p * size.x,
+                          cursor.y + (1.f - (*tfn_o)[i    ].a) * size.y);
+    polyline.emplace_back(cursor.x + margin.x + (*tfn_o)[i + 1].p * size.x + 1,
+                          cursor.y + (1.f - (*tfn_o)[i + 1].a) * size.y);
+    polyline.emplace_back(cursor.x + margin.x + (*tfn_o)[i + 1].p * size.x + 1,
+                          cursor.y + size.y);
+    draw_list->AddConvexPolyFilled(polyline.data(), polyline.size(),
+                                   0xFFD8D8D8, true);
+  }
+  tfn::vec4f new_cursor = {
+    cursor.x, 
+    cursor.y + size.y + margin.z,
+    cursor.z, 
+    cursor.w - size.y,
+  };
+  ImGui::SetCursorScreenPos((const ImVec2&)new_cursor);
+  return new_cursor;
+}
+
+tfn::vec4f TransferFunctionWidget::drawTfnEditor_ColorControlPoints
+(void* _draw_list,
+ const tfn::vec3f& margin, /* left, right, spacing*/
+ const tfn::vec2f& size,
+ const tfn::vec4f& cursor,
+ const float& color_len)
+{
+  auto draw_list = (ImDrawList*)_draw_list;
+  // draw circle background
+  draw_list->AddRectFilled(ImVec2(cursor.x + margin.x, cursor.y - margin.z),
+                           ImVec2(cursor.x + margin.x + size.x,
+                                  cursor.y - margin.x + 2.5 * color_len), 
+                           0xFF474646);
+  // draw circles
+  for (int i = tfn_c->size() - 1; i >= 0; --i) {
+    const ImVec2 pos(cursor.x + size.x * (*tfn_c)[i].p + margin.x, cursor.y);
+    ImGui::SetCursorScreenPos(ImVec2(cursor.x, cursor.y));
+    // white background
+    draw_list->AddTriangleFilled(ImVec2(pos.x - 0.5f * color_len, pos.y),
+                                 ImVec2(pos.x + 0.5f * color_len, pos.y),
+                                 ImVec2(pos.x, pos.y - color_len),
+                                 0xFFD8D8D8);
+    draw_list->AddCircleFilled(ImVec2(pos.x, pos.y + 0.5f * color_len),
+                               color_len,
+                               0xFFD8D8D8);
+    // draw picker
+    ImVec4 picked_color = ImColor((*tfn_c)[i].r,
+                                  (*tfn_c)[i].g, 
+                                  (*tfn_c)[i].b, 1.f);
+    ImGui::SetCursorScreenPos(ImVec2(pos.x - color_len, 
+                                     pos.y + 1.5f * color_len));
+    if (ImGui::ColorEdit4(("##ColorPicker" + std::to_string(i)).c_str(),
+                          (float *) &picked_color,
+                          ImGuiColorEditFlags_NoAlpha |
+                          ImGuiColorEditFlags_NoInputs |
+                          ImGuiColorEditFlags_NoLabel |
+                          ImGuiColorEditFlags_AlphaPreview |
+                          ImGuiColorEditFlags_NoOptions |
+                          ImGuiColorEditFlags_NoTooltip)) {
+      (*tfn_c)[i].r = picked_color.x;
+      (*tfn_c)[i].g = picked_color.y;
+      (*tfn_c)[i].b = picked_color.z;
+      tfn_changed = true;
+    }
+    if (ImGui::IsItemHovered()) {
+      // convert float color to char
+      int cr = static_cast<int>(picked_color.x * 255);
+      int cg = static_cast<int>(picked_color.y * 255);
+      int cb = static_cast<int>(picked_color.z * 255);
+      // setup tooltip
+      ImGui::BeginTooltip();
+      ImVec2 sz(ImGui::GetFontSize() * 4 + 
+                ImGui::GetStyle().FramePadding.y * 2,
+                ImGui::GetFontSize() * 4 + 
+                ImGui::GetStyle().FramePadding.y * 2);
+      ImGui::ColorButton("##PreviewColor", picked_color,
+                         ImGuiColorEditFlags_NoAlpha |
+                         ImGuiColorEditFlags_AlphaPreview,
+                         sz);
+      ImGui::SameLine();
+      ImGui::Text("Left click to edit\n"
+                  "HEX: #%02X%02X%02X\n"
+                  "RGB: [%3d,%3d,%3d]\n(%.2f, %.2f, %.2f)",
+                  cr, cg, cb, cr, cg, cb, 
+                  picked_color.x, picked_color.y, picked_color.z);
+      ImGui::EndTooltip();
+    }
+  }
+  for (int i = 0; i < tfn_c->size(); ++i) {
+    const ImVec2 pos(cursor.x + size.x * (*tfn_c)[i].p + margin.x, cursor.y);
+    // draw button
+    ImGui::SetCursorScreenPos(ImVec2(pos.x - color_len, 
+                                     pos.y - 0.5 * color_len));
+    ImGui::InvisibleButton(("##ColorControl-" + std::to_string(i)).c_str(),
+                           ImVec2(2.f * color_len, 2.f * color_len));
+    // dark highlight
+    ImGui::SetCursorScreenPos(ImVec2(pos.x - color_len, pos.y));
+    draw_list->AddCircleFilled(ImVec2(pos.x, pos.y + 0.5f * color_len),
+                               0.5f * color_len,
+                               ImGui::IsItemHovered() ? 
+                               0xFF051C33 : 0xFFBCBCBC);
+    // delete color point
+    if (ImGui::IsMouseDoubleClicked(1) && ImGui::IsItemHovered()) {
+      if (i > 0 && i < tfn_c->size() - 1) {
+        tfn_c->erase(tfn_c->begin() + i);
+        tfn_changed = true;
+      }
+    }
+    // drag color control point
+    else if (ImGui::IsItemActive()) {
+      ImVec2 delta = ImGui::GetIO().MouseDelta;
+      if (i > 0 && i < tfn_c->size() - 1) {
+        (*tfn_c)[i].p += delta.x / size.x;
+        (*tfn_c)[i].p = clamp((*tfn_c)[i].p, (*tfn_c)[i - 1].p, 
+                              (*tfn_c)[i + 1].p);
+      }
+      tfn_changed = true;
+    }
+  }
+  return vec4f();
+}
+
+tfn::vec4f TransferFunctionWidget::drawTfnEditor_OpacityControlPoints
+(void* _draw_list,
+ const tfn::vec3f& margin, /* left, right, spacing*/
+ const tfn::vec2f& size,
+ const tfn::vec4f& cursor,
+ const float& opacity_len)
+{
+  auto draw_list = (ImDrawList*)_draw_list;
+  // draw circles
+  for (int i = 0; i < tfn_o->size(); ++i) {
+    const ImVec2 pos(cursor.x + size.x * (*tfn_o)[i].p + margin.x,
+                     cursor.y - size.y * (*tfn_o)[i].a - margin.z);
+    ImGui::SetCursorScreenPos(ImVec2(pos.x - opacity_len,
+                                     pos.y - opacity_len));
+    ImGui::InvisibleButton(("##OpacityControl-" + 
+                            std::to_string(i)).c_str(),
+                           ImVec2(2.f * opacity_len, 2.f * opacity_len));
+    ImGui::SetCursorScreenPos(ImVec2(cursor.x, cursor.y));
+    // dark bounding box
+    draw_list->AddCircleFilled(pos, opacity_len, 0xFF565656);
+    // white background
+    draw_list->AddCircleFilled(pos, 0.8f * opacity_len, 0xFFD8D8D8);
+    // highlight
+    draw_list->AddCircleFilled(pos, 0.6f * opacity_len,
+                               ImGui::IsItemHovered() ? 
+                               0xFF051c33 : 0xFFD8D8D8);
+    // delete opacity point
+    if (ImGui::IsMouseDoubleClicked(1) && ImGui::IsItemHovered()) {
+      if (i > 0 && i < tfn_o->size() - 1) {
+        tfn_o->erase(tfn_o->begin() + i);
+        tfn_changed = true;
+      }
+    } else if (ImGui::IsItemActive()) {
+      ImVec2 delta = ImGui::GetIO().MouseDelta;
+      (*tfn_o)[i].a -= delta.y / size.y;
+      (*tfn_o)[i].a = clamp((*tfn_o)[i].a, 0.0f, 1.0f);
+      if (i > 0 && i < tfn_o->size() - 1) {
+        (*tfn_o)[i].p += delta.x / size.x;
+        (*tfn_o)[i].p = clamp((*tfn_o)[i].p, (*tfn_o)[i - 1].p,
+                              (*tfn_o)[i + 1].p);
+      }
+      tfn_changed = true;
+    }
+  }
+  return vec4f();
+}
+
+tfn::vec4f TransferFunctionWidget::drawTfnEditor_InteractionBlocks
+(void* _draw_list,
+ const tfn::vec3f& margin, /* left, right, spacing*/
+ const tfn::vec2f& size,
+ const tfn::vec4f& cursor,
+ const float& color_len,
+ const float& opacity_len)
+{
   const float mouse_x   = ImGui::GetMousePos().x;
   const float mouse_y   = ImGui::GetMousePos().y;
   const float scroll_x  = ImGui::GetScrollX();
   const float scroll_y  = ImGui::GetScrollY();
-  const float width = canvas_avail_x - 2.f * margin;
-  const float color_len   = 9.f;
-  const float opacity_len = 7.f;
-  // draw preview texture
-  ImGui::SetCursorScreenPos(ImVec2(canvas_x + margin, canvas_y));
-  ImGui::Image(reinterpret_cast<void *>(tfn_palette), ImVec2(width, height));
-  ImGui::SetCursorScreenPos(ImVec2(canvas_x, canvas_y));
-  for (int i = 0; i < tfn_o->size() - 1; ++i) {
-    std::vector<ImVec2> polyline;
-    polyline.emplace_back(canvas_x + margin + (*tfn_o)[i].p * width,
-                          canvas_y + height);
-    polyline.emplace_back(canvas_x + margin + (*tfn_o)[i].p * width,
-                          canvas_y + height - (*tfn_o)[i].a * height);
-    polyline.emplace_back(canvas_x + margin + (*tfn_o)[i + 1].p * width + 1,
-                          canvas_y + height - (*tfn_o)[i + 1].a * height);
-    polyline.emplace_back(canvas_x + margin + (*tfn_o)[i + 1].p * width + 1,
-                          canvas_y + height);
-    draw_list->AddConvexPolyFilled(polyline.data(), polyline.size(),
-                                   0xFFD8D8D8, true);
-  }
-  canvas_y += height + margin;
-  canvas_avail_y -= height + margin;
-  // draw color control points
-  ImGui::SetCursorScreenPos(ImVec2(canvas_x, canvas_y));
-  if (tfn_edit) {
-    // draw circle background
-    draw_list->AddRectFilled(ImVec2(canvas_x + margin, canvas_y - margin),
-                             ImVec2(canvas_x + margin + width,
-                                    canvas_y - margin + 2.5 * color_len), 
-                             0xFF474646);
-    // draw circles
-    for (int i = tfn_c->size() - 1; i >= 0; --i) {
-      const ImVec2 pos(canvas_x + width * (*tfn_c)[i].p + margin, canvas_y);
-      ImGui::SetCursorScreenPos(ImVec2(canvas_x, canvas_y));
-      // white background
-      draw_list->AddTriangleFilled(ImVec2(pos.x - 0.5f * color_len, pos.y),
-                                   ImVec2(pos.x + 0.5f * color_len, pos.y),
-                                   ImVec2(pos.x, pos.y - color_len),
-                                   0xFFD8D8D8);
-      draw_list->AddCircleFilled(ImVec2(pos.x, pos.y + 0.5f * color_len),
-                                 color_len,
-                                 0xFFD8D8D8);
-      // draw picker
-      ImVec4 picked_color = ImColor((*tfn_c)[i].r,
-                                    (*tfn_c)[i].g, 
-                                    (*tfn_c)[i].b, 1.f);
-      ImGui::SetCursorScreenPos(ImVec2(pos.x - color_len, 
-                                       pos.y + 1.5f * color_len));
-      if (ImGui::ColorEdit4(("##ColorPicker" + std::to_string(i)).c_str(),
-                            (float *) &picked_color,
-                            ImGuiColorEditFlags_NoAlpha |
-                            ImGuiColorEditFlags_NoInputs |
-                            ImGuiColorEditFlags_NoLabel |
-                            ImGuiColorEditFlags_AlphaPreview |
-                            ImGuiColorEditFlags_NoOptions |
-                            ImGuiColorEditFlags_NoTooltip)) {
-        (*tfn_c)[i].r = picked_color.x;
-        (*tfn_c)[i].g = picked_color.y;
-        (*tfn_c)[i].b = picked_color.z;
-        tfn_changed = true;
-      }
-      if (ImGui::IsItemHovered()) {
-        // convert float color to char
-        int cr = static_cast<int>(picked_color.x * 255);
-        int cg = static_cast<int>(picked_color.y * 255);
-        int cb = static_cast<int>(picked_color.z * 255);
-        // setup tooltip
-        ImGui::BeginTooltip();
-        ImVec2 sz(ImGui::GetFontSize() * 4 + 
-                  ImGui::GetStyle().FramePadding.y * 2,
-                  ImGui::GetFontSize() * 4 + 
-                  ImGui::GetStyle().FramePadding.y * 2);
-        ImGui::ColorButton("##PreviewColor", picked_color,
-                           ImGuiColorEditFlags_NoAlpha |
-                           ImGuiColorEditFlags_AlphaPreview,
-                           sz);
-        ImGui::SameLine();
-        ImGui::Text("Left click to edit\n"
-                    "HEX: #%02X%02X%02X\n"
-                    "RGB: [%3d,%3d,%3d]\n(%.2f, %.2f, %.2f)",
-                    cr, cg, cb, cr, cg, cb, 
-                    picked_color.x, picked_color.y, picked_color.z);
-        ImGui::EndTooltip();
-      }
-    }
-    for (int i = 0; i < tfn_c->size(); ++i) {
-      const ImVec2 pos(canvas_x + width * (*tfn_c)[i].p + margin, canvas_y);
-      // draw button
-      ImGui::SetCursorScreenPos(ImVec2(pos.x - color_len, 
-                                       pos.y - 0.5 * color_len));
-      ImGui::InvisibleButton(("##ColorControl-" + std::to_string(i)).c_str(),
-                             ImVec2(2.f * color_len, 2.f * color_len));
-      // dark highlight
-      ImGui::SetCursorScreenPos(ImVec2(pos.x - color_len, pos.y));
-      draw_list->AddCircleFilled(ImVec2(pos.x, pos.y + 0.5f * color_len),
-                                 0.5f * color_len,
-                                 ImGui::IsItemHovered() ? 
-                                 0xFF051C33 : 0xFFBCBCBC);
-      // delete color point
-      if (ImGui::IsMouseDoubleClicked(1) && ImGui::IsItemHovered()) {
-        if (i > 0 && i < tfn_c->size() - 1) {
-          tfn_c->erase(tfn_c->begin() + i);
-          tfn_changed = true;
-        }
-      }
-      // drag color control point
-      else if (ImGui::IsItemActive()) {
-        ImVec2 delta = ImGui::GetIO().MouseDelta;
-        if (i > 0 && i < tfn_c->size() - 1) {
-          (*tfn_c)[i].p += delta.x / width;
-          (*tfn_c)[i].p = clamp((*tfn_c)[i].p, (*tfn_c)[i - 1].p, 
-                                (*tfn_c)[i + 1].p);
-        }
-        tfn_changed = true;
-      }
-    }
-  }
-  // draw opacity control points
-  ImGui::SetCursorScreenPos(ImVec2(canvas_x, canvas_y));
-  {
-    // draw circles
-    for (int i = 0; i < tfn_o->size(); ++i) {
-      const ImVec2 pos(canvas_x + width * (*tfn_o)[i].p + margin,
-                       canvas_y - height * (*tfn_o)[i].a - margin);
-      ImGui::SetCursorScreenPos(ImVec2(pos.x - opacity_len,
-                                       pos.y - opacity_len));
-      ImGui::InvisibleButton(("##OpacityControl-" + 
-                              std::to_string(i)).c_str(),
-                             ImVec2(2.f * opacity_len, 2.f * opacity_len));
-      ImGui::SetCursorScreenPos(ImVec2(canvas_x, canvas_y));
-      // dark bounding box
-      draw_list->AddCircleFilled(pos, opacity_len, 0xFF565656);
-      // white background
-      draw_list->AddCircleFilled(pos, 0.8f * opacity_len, 0xFFD8D8D8);
-      // highlight
-      draw_list->AddCircleFilled(pos, 0.6f * opacity_len,
-                                 ImGui::IsItemHovered() ? 
-                                 0xFF051c33 : 0xFFD8D8D8);
-      // delete opacity point
-      if (ImGui::IsMouseDoubleClicked(1) && ImGui::IsItemHovered()) {
-        if (i > 0 && i < tfn_o->size() - 1) {
-          tfn_o->erase(tfn_o->begin() + i);
-          tfn_changed = true;
-        }
-      } else if (ImGui::IsItemActive()) {
-        ImVec2 delta = ImGui::GetIO().MouseDelta;
-        (*tfn_o)[i].a -= delta.y / height;
-        (*tfn_o)[i].a = clamp((*tfn_o)[i].a, 0.0f, 1.0f);
-        if (i > 0 && i < tfn_o->size() - 1) {
-          (*tfn_o)[i].p += delta.x / width;
-          (*tfn_o)[i].p = clamp((*tfn_o)[i].p, (*tfn_o)[i - 1].p,
-                                (*tfn_o)[i + 1].p);
-        }
-        tfn_changed = true;
-      }
-    }
-  }
-  // draw background interaction
-  ImGui::SetCursorScreenPos(ImVec2(canvas_x + margin, canvas_y - margin));
+  auto draw_list = (ImDrawList*)_draw_list;
+  ImGui::SetCursorScreenPos(ImVec2(cursor.x + margin.x, cursor.y - margin.z));
   ImGui::InvisibleButton("##tfn_palette_color",
-                         ImVec2(width, 2.5 * color_len));
+                         ImVec2(size.x, 2.5 * color_len));
   // add color point
   if (tfn_edit && ImGui::IsMouseDoubleClicked(0) && ImGui::IsItemHovered()) {
-    const float p = clamp((mouse_x - canvas_x - margin - scroll_x) /
-                          (float) width, 0.f, 1.f);
+    const float p = clamp((mouse_x - cursor.x - margin.x - scroll_x) /
+                          (float) size.x, 0.f, 1.f);
     const int ir = find_idx(*tfn_c, p);
     const int il = ir - 1;
     const float pr = (*tfn_c)[ir].p;
@@ -314,16 +313,16 @@ void TransferFunctionWidget::drawTfnEditor
     tfn_changed = true;
   }
   // draw background interaction
-  ImGui::SetCursorScreenPos(ImVec2(canvas_x + margin, 
-                                   canvas_y - height - margin));
-  ImGui::InvisibleButton("##tfn_palette_opacity", ImVec2(width, height));
+  ImGui::SetCursorScreenPos(ImVec2(cursor.x + margin.x, 
+                                   cursor.y - size.y - margin.z));
+  ImGui::InvisibleButton("##tfn_palette_opacity", ImVec2(size.x, size.y));
   // add opacity point
   if (ImGui::IsMouseDoubleClicked(0) && ImGui::IsItemHovered()) {
-    const float x = clamp((mouse_x - canvas_x - margin - scroll_x) / 
-                          (float) width,
+    const float x = clamp((mouse_x - cursor.x - margin.x - scroll_x) / 
+                          (float) size.x,
                           0.f, 1.f);
-    const float y = clamp(-(mouse_y - canvas_y + margin - scroll_y) /
-                          (float) height,
+    const float y = clamp(-(mouse_y - cursor.y + margin.x - scroll_y) /
+                          (float) size.y,
                           0.f, 1.f);
     const int idx = find_idx(*tfn_o, x);
     OpacityPoint_Linear pt;
@@ -331,9 +330,43 @@ void TransferFunctionWidget::drawTfnEditor
     tfn_o->insert(tfn_o->begin() + idx, pt);
     tfn_changed = true;
   }
+}
+
+void TransferFunctionWidget::drawTfnEditor
+(const float margin, const float height)
+{
+  // style
+  ImDrawList *draw_list = ImGui::GetWindowDrawList();
+  const float canvas_x  = ImGui::GetCursorScreenPos().x;
+  float       canvas_y  = ImGui::GetCursorScreenPos().y;  
+  const float width = ImGui::GetContentRegionAvail().x - 2.f * margin;
+  const float color_len   = 9.f;
+  const float opacity_len = 7.f;
+  // debug
+  const tfn::vec3f m {margin, margin, margin};
+  const tfn::vec2f s {width, height};
+  tfn::vec4f c = {
+    canvas_x, canvas_y, 
+    ImGui::GetContentRegionAvail().x,
+    ImGui::GetContentRegionAvail().y
+  };
+  // draw preview texture
+  c = drawTfnEditor_PreviewTexture(draw_list, m, s, c);
+  canvas_y = c.y;
+  // draw color control points
+  ImGui::SetCursorScreenPos(ImVec2(canvas_x, canvas_y));
+  if (tfn_edit) {
+    drawTfnEditor_ColorControlPoints(draw_list, m, s, c, color_len);
+  }
+  // draw opacity control points
+  ImGui::SetCursorScreenPos(ImVec2(canvas_x, canvas_y));
+  {
+    drawTfnEditor_OpacityControlPoints(draw_list, m, s, c, opacity_len);
+  }
+  // draw background interaction
+  drawTfnEditor_InteractionBlocks(draw_list, m, s, c, color_len, opacity_len);
   // update cursors
   canvas_y += 4.f * color_len + margin;
-  canvas_avail_y -= 4.f * color_len + margin;
   ImGui::SetCursorScreenPos(ImVec2(canvas_x, canvas_y));
 }
 
@@ -395,7 +428,7 @@ bool TransferFunctionWidget::drawUI(bool* p_open)
         curr_names += n + '\0';
       }
       if (ImGui::Combo(" color tables", &curr_tfn, curr_names.c_str())) {
-        selectTfn(curr_tfn);
+        setTfn(curr_tfn);
       }
     }
     // display transfer function value range
@@ -508,7 +541,7 @@ void TransferFunctionWidget::load(const std::string &fileName)
   tfn_o_list.emplace_back(o_size);
   tfn_editable.push_back(false); // TODO we dont want to edit loaded TFN
   tfn_names.push_back(tfn_new.name);
-  selectTfn(tfn_names.size() - 1); // set the loaded function as current
+  setTfn(tfn_names.size() - 1); // set the loaded function as current
   if (c_size < 2) {
     throw std::runtime_error("transfer function contains too "
                              "few color points");
