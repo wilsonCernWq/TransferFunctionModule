@@ -22,7 +22,15 @@
 using namespace tfn;
 
 // ======================================================================== //
+uint32_t tfn::color_t::hex() const {
+  // This function gives Hex color for ImGui
+  return (0xff << 24) +
+    ((static_cast<uint8_t>(b * 255.f) & 0xff) << 16) +
+    ((static_cast<uint8_t>(g * 255.f) & 0xff) << 8) +
+    ((static_cast<uint8_t>(r * 255.f) & 0xff));
+}
 
+// ======================================================================== //
 // The magic number is 'OSTF' in ASCII
 const static uint32_t MAGIC_NUMBER = 0x4f535446;
 const static uint64_t CURRENT_VERSION = 1;

@@ -87,9 +87,8 @@ namespace tfn {
                                                   const tfn::vec4f&,
                                                   const float&);
       tfn::vec4f drawTfnEditor_OpacityControlPoints(void* _draw_list,
-                                                    const tfn::vec3f&,
                                                     const tfn::vec2f&,
-                                                    const tfn::vec4f&,
+                                                    const tfn::vec2f&,
                                                     const float&);
       tfn::vec4f drawTfnEditor_InteractionBlocks(void* _draw_list,
                                                  const tfn::vec3f&,

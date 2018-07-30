@@ -101,32 +101,18 @@ tfn::vec4f TransferFunctionWidget::drawTfnEditor_PreviewTexture
  const tfn::vec2f& size,
  const tfn::vec4f& cursor)
 {
-  auto draw_list = (ImDrawList*)_draw_list;
-  ImGui::SetCursorScreenPos(ImVec2(cursor.x + margin.x, cursor.y));
-  ImGui::Image(reinterpret_cast<void *>(tfn_palette), (const ImVec2&)size);
-  ImGui::SetCursorScreenPos((const ImVec2&)cursor);
-  // TODO: more generic way of drawing arbitary splats
-  for (int i = 0; i < tfn_o->size() - 1; ++i) {
-    std::vector<ImVec2> polyline;
-    polyline.emplace_back(cursor.x + margin.x + (*tfn_o)[i].p * size.x,
-                          cursor.y + size.y);
-    polyline.emplace_back(cursor.x + margin.x + (*tfn_o)[i].p * size.x,
-                          cursor.y + (1.f - (*tfn_o)[i    ].a) * size.y);
-    polyline.emplace_back(cursor.x + margin.x + (*tfn_o)[i + 1].p * size.x + 1,
-                          cursor.y + (1.f - (*tfn_o)[i + 1].a) * size.y);
-    polyline.emplace_back(cursor.x + margin.x + (*tfn_o)[i + 1].p * size.x + 1,
-                          cursor.y + size.y);
-    draw_list->AddConvexPolyFilled(polyline.data(), polyline.size(),
-                                   0xFFD8D8D8, true);
-  }
-  tfn::vec4f new_cursor = {
-    cursor.x, 
-    cursor.y + size.y + margin.z,
-    cursor.z, 
-    cursor.w - size.y,
-  };
-  ImGui::SetCursorScreenPos((const ImVec2&)new_cursor);
-  return new_cursor;
+//   auto draw_list = (ImDrawList*)_draw_list;
+//   ImGui::SetCursorScreenPos(ImVec2(cursor.x + margin.x, cursor.y));
+//   ImGui::Image(reinterpret_cast<void *>(tfn_palette), (const ImVec2&)size);
+//   ImGui::SetCursorScreenPos((const ImVec2&)cursor);
+//   tfn::vec4f new_cursor = {
+//     cursor.x, 
+//     cursor.y + size.y + margin.z,
+//     cursor.z, 
+//     cursor.w - size.y,
+//   };
+//   ImGui::SetCursorScreenPos((const ImVec2&)new_cursor);
+//   return new_cursor;
 }
 
 tfn::vec4f TransferFunctionWidget::drawTfnEditor_ColorControlPoints
@@ -233,16 +219,37 @@ tfn::vec4f TransferFunctionWidget::drawTfnEditor_ColorControlPoints
 
 tfn::vec4f TransferFunctionWidget::drawTfnEditor_OpacityControlPoints
 (void* _draw_list,
- const tfn::vec3f& margin, /* left, right, spacing*/
+ const tfn::vec2f& cursor,
  const tfn::vec2f& size,
- const tfn::vec4f& cursor,
  const float& opacity_len)
 {
+  const float mouse_x   = ImGui::GetMousePos().x;
+  const float mouse_y   = ImGui::GetMousePos().y;
+  const float scroll_x  = ImGui::GetScrollX();
+  const float scroll_y  = ImGui::GetScrollY();
+
   auto draw_list = (ImDrawList*)_draw_list;
   // draw circles
+  ImGui::SetCursorScreenPos((const ImVec2&)cursor);
+  ImGui::Image(reinterpret_cast<void *>(tfn_palette), (const ImVec2&)size);
+  // TODO: more generic way of drawing arbitary splats
+  ImGui::SetCursorScreenPos(ImVec2(cursor.x, cursor.y + size.y));
+  for (int i = 0; i < tfn_o->size() - 1; ++i) {
+    std::vector<ImVec2> polyline;
+    polyline.emplace_back(cursor.x + (*tfn_o)[i].p * size.x,
+                          cursor.y + size.y);
+    polyline.emplace_back(cursor.x + (*tfn_o)[i].p * size.x,
+                          cursor.y + (1.f - (*tfn_o)[i    ].a) * size.y);
+    polyline.emplace_back(cursor.x + (*tfn_o)[i + 1].p * size.x + 1,
+                          cursor.y + (1.f - (*tfn_o)[i + 1].a) * size.y);
+    polyline.emplace_back(cursor.x + (*tfn_o)[i + 1].p * size.x + 1,
+                          cursor.y + size.y);
+    draw_list->AddConvexPolyFilled(polyline.data(), polyline.size(),
+                                   0xFFD8D8D8, true);
+  }
   for (int i = 0; i < tfn_o->size(); ++i) {
-    const ImVec2 pos(cursor.x + size.x * (*tfn_o)[i].p + margin.x,
-                     cursor.y - size.y * (*tfn_o)[i].a - margin.z);
+    const ImVec2 pos(cursor.x + size.x * (*tfn_o)[i].p,
+                     cursor.y + size.y * (1.f - (*tfn_o)[i].a));
     ImGui::SetCursorScreenPos(ImVec2(pos.x - opacity_len,
                                      pos.y - opacity_len));
     ImGui::InvisibleButton(("##OpacityControl-" + 
@@ -263,7 +270,9 @@ tfn::vec4f TransferFunctionWidget::drawTfnEditor_OpacityControlPoints
         tfn_o->erase(tfn_o->begin() + i);
         tfn_changed = true;
       }
-    } else if (ImGui::IsItemActive()) {
+    } 
+    else if (ImGui::IsItemActive()) 
+    {
       ImVec2 delta = ImGui::GetIO().MouseDelta;
       (*tfn_o)[i].a -= delta.y / size.y;
       (*tfn_o)[i].a = clamp((*tfn_o)[i].a, 0.0f, 1.0f);
@@ -275,7 +284,30 @@ tfn::vec4f TransferFunctionWidget::drawTfnEditor_OpacityControlPoints
       tfn_changed = true;
     }
   }
-  return vec4f();
+  ImGui::SetCursorScreenPos(ImVec2(cursor.x, cursor.y + size.y));
+  if (ImGui::IsItemHovered()) {
+        ImGui::SetTooltip("Double right click a control point to delete it\n"
+                          "Single left click and drag a control point to "
+                          "move it\n"
+                          "Double left click on an empty area to add a "
+                          "control point\n");
+
+  }
+  // add opacity point
+  if (ImGui::IsMouseDoubleClicked(0) && ImGui::IsItemHovered()) {
+    std::cout << "clicked" << std::endl;
+    const float x = clamp((mouse_x - cursor.x - scroll_x) / 
+                          (float) size.x,
+                          0.f, 1.f);
+    const float y = clamp(-(mouse_y - cursor.y - scroll_y) /
+                          (float) size.y,
+                          0.f, 1.f);
+    const int idx = find_idx(*tfn_o, x);
+    OpacityPoint_Linear pt;
+    pt.p = x, pt.a = y;
+    tfn_o->insert(tfn_o->begin() + idx, pt);
+    tfn_changed = true;
+  }
 }
 
 tfn::vec4f TransferFunctionWidget::drawTfnEditor_InteractionBlocks
@@ -330,6 +362,7 @@ tfn::vec4f TransferFunctionWidget::drawTfnEditor_InteractionBlocks
     tfn_o->insert(tfn_o->begin() + idx, pt);
     tfn_changed = true;
   }
+  return vec4f();
 }
 
 void TransferFunctionWidget::drawTfnEditor
@@ -350,21 +383,31 @@ void TransferFunctionWidget::drawTfnEditor
     ImGui::GetContentRegionAvail().x,
     ImGui::GetContentRegionAvail().y
   };
+  // ImGui::SetCursorScreenPos(ImVec2(canvas_x + margin, canvas_y));
+  //ImGui::BeginGroup();
   // draw preview texture
-  c = drawTfnEditor_PreviewTexture(draw_list, m, s, c);
-  canvas_y = c.y;
+  // c = drawTfnEditor_PreviewTexture(draw_list, m, s, c);
+  // draw opacity control points
+  // ImGui::SetCursorScreenPos(ImVec2(canvas_x, canvas_y));
   // draw color control points
-  ImGui::SetCursorScreenPos(ImVec2(canvas_x, canvas_y));
+  c.y += height + margin + margin;
+
+  ImGui::SetCursorScreenPos(ImVec2(canvas_x, canvas_y+margin));
   if (tfn_edit) {
     drawTfnEditor_ColorControlPoints(draw_list, m, s, c, color_len);
   }
-  // draw opacity control points
-  ImGui::SetCursorScreenPos(ImVec2(canvas_x, canvas_y));
+
   {
-    drawTfnEditor_OpacityControlPoints(draw_list, m, s, c, opacity_len);
+    tfn::vec2f cc = {
+      canvas_x + margin, canvas_y + margin
+    };
+    drawTfnEditor_OpacityControlPoints(draw_list, cc, s, opacity_len);
   }
+  
+
   // draw background interaction
   drawTfnEditor_InteractionBlocks(draw_list, m, s, c, color_len, opacity_len);
+  //ImGui::EndGroup();
   // update cursors
   canvas_y += 4.f * color_len + margin;
   ImGui::SetCursorScreenPos(ImVec2(canvas_x, canvas_y));

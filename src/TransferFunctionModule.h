@@ -26,12 +26,16 @@
   #define TFN_MODULE_INTERFACE
 #endif
 
+#include <cassert>
+#include <cmath>
 #include <string>
-#include <vector>
 #include <array>
+#include <vector>
+#include <map>
+#include <initializer_list>
 
 #define TFN_MODULE_VERSION "0.02 WIP"
-namespace tfn 
+namespace tfn
 {
   inline TFN_MODULE_INTERFACE const char* GetVersion() { 
     return TFN_MODULE_VERSION; 
@@ -99,6 +103,157 @@ namespace tfn {
 
 namespace tfn {
 
+//// Basic Types //////////////////////////////////////////////////////////////////////
+
+  struct TFN_MODULE_INTERFACE color_t {
+  public:
+    float r = 0.f, g = 0.f, b = 0.f;
+  public:
+    virtual ~color_t() = default;
+             color_t() = default;
+    explicit color_t(const float& r, const float& g, const float& b) 
+      : r(r), g(g), b(b) {}
+    color_t& operator+=(const color_t& rhs) 
+    {
+      r += rhs.r; g += rhs.g; b += rhs.b; return *this;
+    }
+    // friends defined inside class body are inline and are hidden from non-ADL lookup,
+    // passing lhs by value helps optimize chained a+b+c, otherwise, both parameters 
+    // may be const references
+    friend color_t operator+(color_t lhs, const color_t& rhs) 
+    {
+      lhs += rhs; // reuse compound assignment
+      return lhs; // return the result by value (uses move constructor)
+    }
+    uint32_t hex() const;
+  };
+
+  struct TFN_MODULE_INTERFACE opacity_t {
+  public:
+    float a = 0.f;
+  public:
+    virtual ~opacity_t() = default;
+             opacity_t() = default;
+    explicit opacity_t(const float& a) : a(a) {}
+    opacity_t& operator+=(const opacity_t& rhs) 
+    {
+      a += rhs.a; return *this;
+    }
+    friend opacity_t operator+(opacity_t lhs, const opacity_t& rhs) 
+    {
+      lhs += rhs; return lhs;
+    }
+  };
+
+  template<typename T> 
+  struct TFN_MODULE_INTERFACE control_point_t { 
+  protected:
+    float p;
+    T     v;
+  public:
+    virtual ~control_point_t() = default;
+    control_point_t() = default;
+    explicit control_point_t(const float& p) : p(p) {}
+    explicit control_point_t(const float& p, const T& v) : p(p), v(v) {}
+    virtual T splat(float x, float w) const = 0;
+    const float& pos() const { return p; }
+    const T&     val() const { return v; }
+  };
+
+  template<typename T>
+  struct TFN_MODULE_INTERFACE control_list_t {
+  public:
+    using point_t = control_point_t<T>;
+    using value_t = std::pair<float, point_t>;
+    using list_t  = std::multimap<float, point_t>;
+  protected:
+    list_t list;
+  public:
+    virtual ~control_list_t() = default;
+    control_list_t() = default;
+    control_list_t(std::initializer_list<value_t> init) 
+      : list(init) {};
+    control_list_t(std::initializer_list<point_t> init) 
+    {
+      for (auto& it : init) {
+        list.insert(std::make_pair(it->pos(), it->val()));
+      }
+    }
+    explicit control_list_t(const list_t& l) : list(l) {}
+    void size() const { return list.size(); }
+    void resize(size_t n) { list.resize(n); }
+    std::vector<T> rasterize(size_t n) const 
+    {
+      const float w = 1.f / static_cast<float>(n);
+      std::vector<T> output(n);
+      for (size_t i = 0; i < n; ++i) {
+        const float p = static_cast<float>(i) * w;
+        for (auto& it : list) {
+          output[i] += it->splat(p, w);
+        }
+      }
+    }
+    void add(const point_t& point) 
+    {
+      list.insert(std::make_pair(point.pos(), point.val()));
+    }
+    void remove(const point_t& point) 
+    {
+      list.remove(point.pos());
+    }
+  };
+
+//// End of Basic Types ////
+
+//// Control Points ///////////////////////////////////////////////////////////////////
+
+  struct TFN_MODULE_INTERFACE simple_color_control_point_t 
+    : public control_point_t<color_t>
+  {  
+    color_t splat(float x, float w) const override 
+    {
+      assert(w >= 0);
+      return std::abs(x - p) >= w ? color_t() : v;
+    }
+  };
+
+  struct TFN_MODULE_INTERFACE simple_opacity_control_point_t 
+    : public control_point_t<opacity_t>
+  {  
+    opacity_t splat(float x, float w) const override 
+    {
+      assert(w >= 0);
+      return std::abs(x - p) >= w ? opacity_t() : v;
+    }
+  };
+
+  struct TFN_MODULE_INTERFACE gaussian_opacity_control_point_t 
+    : public control_point_t<opacity_t>
+  {
+  protected:
+    using value_t = control_point_t<opacity_t>;
+    float sw, sy; // width / height of the gaussian function
+    float bx, by;
+  public:
+    explicit gaussian_opacity_control_point_t(const value_t& point,
+                                              const float& sw, 
+                                              const float& sy,
+                                              const float& bx, 
+                                              const float& by)
+      : value_t(point), sw(sw), sy(sy), bx(bx), by(by) {}
+    opacity_t splat(float x, float w) const override 
+    {
+      return opacity_t();
+    }
+  };
+
+  using simple_color_list_t   = control_list_t<simple_color_control_point_t>;
+  using simple_opacity_list_t = control_list_t<simple_opacity_control_point_t>;
+
+//// End of Control Points ////
+
+//// Old Definitions //////////////////////////////////////////////////////////////////
+
   struct TFN_MODULE_INTERFACE ColorPoint {
     float p; // location of the control point [0, 1]
     float r, g, b;
@@ -131,6 +286,7 @@ namespace tfn {
     OpacityPoint_Gaussian(const OpacityPoint_Gaussian& c);
     OpacityPoint_Gaussian& operator=(const OpacityPoint_Gaussian &c);
   };
+
 
   struct TFN_MODULE_INTERFACE TransferFunction {
     std::string name;
