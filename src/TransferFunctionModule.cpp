@@ -21,6 +21,9 @@
 
 using namespace tfn;
 
+simple_color_list_t test0 = {{0.f, new simple_color_control_t()}};
+//control_list_t<int> test1;
+
 // ======================================================================== //
 uint32_t tfn::color_t::hex() const {
   // This function gives Hex color for ImGui

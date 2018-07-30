@@ -77,10 +77,6 @@ namespace tfn {
       /** Draw the Tfn Editor in a window
        */
       void drawTfnEditor(const float margin, const float height);
-      tfn::vec4f drawTfnEditor_PreviewTexture(void* _draw_list, 
-                                              const tfn::vec3f&, 
-                                              const tfn::vec2f&,
-                                              const tfn::vec4f&);
       tfn::vec4f drawTfnEditor_ColorControlPoints(void* _draw_list, 
                                                   const tfn::vec3f&,
                                                   const tfn::vec2f&,
@@ -98,6 +94,8 @@ namespace tfn {
                                                  const float&);
 
     private: // TODO: to be cleaned
+
+      TransferFunctionData test;
 
       // TODO
       // This MAYBE the correct way of doing this

@@ -95,26 +95,6 @@ void TransferFunctionWidget::setDefaultRange(const float& a, const float& b)
   tfn_changed = true;
 }
 
-tfn::vec4f TransferFunctionWidget::drawTfnEditor_PreviewTexture
-(void* _draw_list,
- const tfn::vec3f& margin, /* left, right, spacing*/
- const tfn::vec2f& size,
- const tfn::vec4f& cursor)
-{
-//   auto draw_list = (ImDrawList*)_draw_list;
-//   ImGui::SetCursorScreenPos(ImVec2(cursor.x + margin.x, cursor.y));
-//   ImGui::Image(reinterpret_cast<void *>(tfn_palette), (const ImVec2&)size);
-//   ImGui::SetCursorScreenPos((const ImVec2&)cursor);
-//   tfn::vec4f new_cursor = {
-//     cursor.x, 
-//     cursor.y + size.y + margin.z,
-//     cursor.z, 
-//     cursor.w - size.y,
-//   };
-//   ImGui::SetCursorScreenPos((const ImVec2&)new_cursor);
-//   return new_cursor;
-}
-
 tfn::vec4f TransferFunctionWidget::drawTfnEditor_ColorControlPoints
 (void* _draw_list,
  const tfn::vec3f& margin, /* left, right, spacing*/
