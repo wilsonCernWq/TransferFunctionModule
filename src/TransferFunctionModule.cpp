@@ -21,8 +21,14 @@
 
 using namespace tfn;
 
-simple_color_list_t test0 = {{0.f, new simple_color_control_t()}};
+simple_color_list_t test0 = {
+  { 
+    { 0.f, std::make_shared<simple_color_control_t>() },
+    { 1.f, std::make_shared<simple_color_control_t>() },
+  }
+};
 //control_list_t<int> test1;
+//simple_color_list_t test1;
 
 // ======================================================================== //
 uint32_t tfn::color_t::hex() const {

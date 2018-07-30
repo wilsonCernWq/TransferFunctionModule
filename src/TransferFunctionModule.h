@@ -186,8 +186,8 @@ namespace tfn {
                                    cp_t>::type* = nullptr>
   struct TFN_MODULE_INTERFACE control_list_t {
   public:
-    using list_t = std::multimap<float, cp_t*>;
-    using pair_t = std::pair<float, cp_t*>;
+    using list_t = std::multimap<float, std::shared_ptr<cp_t>>;
+    using pair_t = std::pair    <float, std::shared_ptr<cp_t>>;
   protected:
     list_t list;
   public:
@@ -195,24 +195,45 @@ namespace tfn {
     // we dont have a default constructor here becayse we require the list to have
     // at least two points
     template<std::size_t N>
-    control_list_t(const pair_t(&list)[N])
+    control_list_t(const pair_t(&init)[N])
     {
-      static_assert(N > 1, "Two or more elements are required.");
+      static_assert(N >= 2, 
+                    "At least two elements are required for initializing "
+                    "a control point list.");
+      if (init[0  ].first != 0.f) 
+      {
+        throw std::runtime_error("The first element in a control point list must "
+                                 "have position = 0.f. "
+                                 "(line" + std::to_string(__LINE__) + ") "
+                                 "(file" __FILE__ ").");
+      }
+      if (init[N-1].first != 1.f) {
+        throw std::runtime_error("The last element in a control point list must "
+                                 "have position = 1.f. "
+                                 "(line" + std::to_string(__LINE__) + ") "
+                                 "(file" __FILE__ ").");
+      }
+      for (auto& p : init) { list.insert(p); }
     }
-    explicit control_list_t(const list_t& l) : list(l) {}
-
-/*     const float& pos() const { return p; } */
-/*           float& pos()       { return p; } */
-
+    // access list values
+    const float& pos(const ptrdiff_t& i) const { return (list.begin() + i)->first; }
+          float& pos(const ptrdiff_t& i)       { return (list.begin() + i)->first; }
+    const std::shared_ptr<cp_t> val(const ptrdiff_t& i) const 
+    { 
+      return (list.begin() + i)->second; 
+    }
+          std::shared_ptr<cp_t> val(const ptrdiff_t& i) 
+    { 
+      return (list.begin() + i)->second; 
+    }
 
     void resize(size_t n) { list.resize(n); }
     void size() const { return list.size(); }
-  
-/*     void add(const point_t& point)  */
-/*     { */
-/*       list.insert(std::make_pair(point.pos(), point)); */
-/*     } */
-/*     void remove(const point_t& point)  */
+    void add(const float& pos, const cp_t& point)
+    {
+      list.insert(pos, point);
+    }
+/*     void remove(const point_t& point) */
 /*     { */
 /*       list.remove(point.pos()); */
 /*     } */
