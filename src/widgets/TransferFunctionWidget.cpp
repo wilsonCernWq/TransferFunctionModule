@@ -433,15 +433,23 @@ bool TransferFunctionWidget::drawUI(bool* p_open)
     }
     // display transfer function value range
     if (defaultRange[1] > defaultRange[0]) {
-      if (ImGui::DragFloat2(" value range", valueRange.data(),
-                            (defaultRange[1] - defaultRange[0]) / 1000.f,
-                            defaultRange[0], defaultRange[1])) {
-        tfn_changed = true;
+      // if (ImGui::DragFloat2(" value range", valueRange.data(),
+      //                       (defaultRange[1] - defaultRange[0]) / 1000.f,
+      //                       defaultRange[0], defaultRange[1])) {
+      //   tfn_changed = true;
+      // }
+      if (ImGui::SliderFloat2(" value range", valueRange.data(),
+			      defaultRange[0], defaultRange[1])) {
+	tfn_changed = true;
       }
     } else {
-      if (ImGui::DragFloat2(" value range", valueRange.data())) {
-        tfn_changed = true;
-      }
+      // if (ImGui::DragFloat2(" value range", valueRange.data())) {
+      //   tfn_changed = true;
+      // }
+      if (ImGui::SliderFloat2(" value range", valueRange.data(),
+			      defaultRange[1], defaultRange[0])) {
+	tfn_changed = true;
+      }      
     }
   }
   ImGui::EndGroup();
